@@ -1500,6 +1500,44 @@ th:first-child {
   100% { transform: scale(1.0);  opacity: 1; }
 }
 
+/* Pause / Skip pills under the grid — secondary, "optional" controls,
+   only present while the reveal is running. Sticky to the bottom of the
+   screen: on a long career (or a phone with Safari's toolbars showing)
+   their natural spot below the grid can sit off-screen, so they float
+   over the grid's lower rows until the page scrolls them into place. */
+.reveal-controls {
+  position: sticky;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: -2px 0 8px;
+  pointer-events: none; /* the strip between pills mustn't block swipes on the grid */
+}
+.reveal-controls[hidden] { display: none; }
+
+/* The tint is layered over the page background so the pill reads the
+   same as a translucent chip in place, but stays opaque when floating
+   over grid cells. */
+.reveal-control {
+  pointer-events: auto;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(29, 62, 53, 0.2);
+  background: linear-gradient(rgba(29, 62, 53, 0.08), rgba(29, 62, 53, 0.08)), var(--bg);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.reveal-control-icon { font-size: 11px; }
+
+[data-theme="dark"] .reveal-control {
+  border-color: rgba(238, 243, 240, 0.2);
+  background: linear-gradient(rgba(238, 243, 240, 0.08), rgba(238, 243, 240, 0.08)), var(--bg);
+}
+
 /* ===========================================================
    LEGEND
    =========================================================== */

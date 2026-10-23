@@ -1214,6 +1214,10 @@ function openTiebreak(options, opts) {
 function endRound() {
   const won = game.lastOutcome === "win" || game.lastOutcome === "tiebreak";
 
+  // Round over mid-reveal (early correct guess, or a loss/tiebreak): snap
+  // the rest of the grid in and drop the Pause/Skip controls.
+  const revealCutShort = completeReveal();
+
   // record result BEFORE locking next round
   if (game.current) {
     game.roundHistory.push({
@@ -1260,8 +1264,10 @@ function endRound() {
 
   // Open the modal first. The countdown stays hidden until the user
   // closes the modal — that dismissal becomes the "see you tomorrow"
-  // reveal moment.
-  openResultModal();
+  // reveal moment. If the grid was just snapped in, hold the modal for a
+  // beat so the full career is actually seen before it covers the page.
+  if (revealCutShort) setTimeout(openResultModal, 900);
+  else openResultModal();
 }
 
 function populateWeekStrip(containerEl) {
@@ -2131,6 +2137,9 @@ function render() {
     ? buildMobileTable(p, years, slams)
     : buildDesktopTable(p, years, slams);
 
+  // A re-render (new round, or crossing the mobile/desktop breakpoint
+  // mid-reveal) replaces every cell — drop any reveal still in flight.
+  stopReveal();
   document.getElementById("table").innerHTML = html;
 
   const existingFoot = document.getElementById("freshnessFoot");
@@ -2172,42 +2181,153 @@ function render() {
 
 /* Reveal animation: each cell stamps in one at a time.
    Desktop (rowMajor=false): column-by-column, top-to-bottom within each column.
-   Mobile  (rowMajor=true):  row-by-row, left-to-right within each row (AO first). */
+   Mobile  (rowMajor=true):  row-by-row, left-to-right within each row (AO first).
+
+   Driven by a single timer walking a queue (rather than one setTimeout
+   per cell scheduled up front) so the player can pause, resume, or skip
+   it via the Pause/Skip pills under the grid. */
+const REVEAL_STAGGER_MS = 350; // per-cell beat
+
+const revealState = {
+  active: false,  // reveal in progress
+  paused: false,  // currently paused
+  queue: [],      // cells not yet revealed, in order
+  timer: null,    // pending setTimeout id
+  nextAt: 0,      // when the pending step fires (for resuming mid-beat)
+  remaining: 0,   // ms left in the beat when paused
+  rowMajor: false,
+  numCols: 0,
+};
+
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+}
+
 function animateReveal(numCols, numRows, rowMajor = false) {
-  const STAGGER_MS = 350; // per-cell beat
+  stopReveal();
 
-  const cells = document.querySelectorAll("#table .reveal-cell");
+  const cells = [...document.querySelectorAll("#table .reveal-cell")];
+
+  // Reduced motion: no animation, nothing to pause — show the grid at once.
+  if (prefersReducedMotion()) {
+    cells.forEach((c) => c.classList.remove("is-hidden"));
+    return;
+  }
+
   cells.forEach((c) => c.classList.add("is-hidden"));
-
   void document.getElementById("table").offsetWidth;
 
-  const wrap = document.querySelector(".table-wrap");
-
-  cells.forEach((cell) => {
+  const orderOf = (cell) => {
     const row = parseInt(cell.dataset.row, 10);
     const col = parseInt(cell.dataset.col, 10);
-    const order = rowMajor ? row * numCols + col : col * numRows + row;
-    const delay = order * STAGGER_MS;
-    setTimeout(() => {
-      cell.classList.remove("is-hidden");
-      cell.classList.add("is-stamping");
-      // Desktop only: auto-scroll to keep the next column in view.
-      if (!rowMajor && wrap && col < numCols - 1) {
-        const wrapRect = wrap.getBoundingClientRect();
-        const cellRect = cell.getBoundingClientRect();
-        const RIGHT_MARGIN = 40;
-        if (cellRect.right > wrapRect.right - RIGHT_MARGIN) {
-          const overflow = cellRect.right - (wrapRect.right - RIGHT_MARGIN);
-          const maxScroll = wrap.scrollWidth - wrap.clientWidth;
-          const target = Math.min(wrap.scrollLeft + overflow, maxScroll);
-          if (target > wrap.scrollLeft + 1) {
-            wrap.scrollTo({ left: target, behavior: "smooth" });
-          }
-        }
+    return rowMajor ? row * numCols + col : col * numRows + row;
+  };
+
+  revealState.queue = cells.sort((a, b) => orderOf(a) - orderOf(b));
+  revealState.active = true;
+  revealState.paused = false;
+  revealState.rowMajor = rowMajor;
+  revealState.numCols = numCols;
+  setRevealControlsVisible(true);
+  scheduleRevealStep(0);
+}
+
+function scheduleRevealStep(delay) {
+  revealState.nextAt = Date.now() + delay;
+  revealState.timer = setTimeout(revealStep, delay);
+}
+
+function revealStep() {
+  revealState.timer = null;
+  const cell = revealState.queue.shift();
+  // Queue drained: the last cell's stamp has played out — hide the controls.
+  if (!cell) return stopReveal();
+  stampCell(cell);
+  scheduleRevealStep(REVEAL_STAGGER_MS);
+}
+
+function stampCell(cell) {
+  cell.classList.remove("is-hidden");
+  cell.classList.add("is-stamping");
+  // Desktop only: auto-scroll to keep the next column in view.
+  const wrap = document.querySelector(".table-wrap");
+  const col = parseInt(cell.dataset.col, 10);
+  if (!revealState.rowMajor && wrap && col < revealState.numCols - 1) {
+    const wrapRect = wrap.getBoundingClientRect();
+    const cellRect = cell.getBoundingClientRect();
+    const RIGHT_MARGIN = 40;
+    if (cellRect.right > wrapRect.right - RIGHT_MARGIN) {
+      const overflow = cellRect.right - (wrapRect.right - RIGHT_MARGIN);
+      const maxScroll = wrap.scrollWidth - wrap.clientWidth;
+      const target = Math.min(wrap.scrollLeft + overflow, maxScroll);
+      if (target > wrap.scrollLeft + 1) {
+        wrap.scrollTo({ left: target, behavior: "smooth" });
       }
-      setTimeout(() => cell.classList.remove("is-stamping"), 350);
-    }, delay);
-  });
+    }
+  }
+  setTimeout(() => cell.classList.remove("is-stamping"), 350);
+}
+
+function toggleRevealPause() {
+  if (!revealState.active) return;
+  if (revealState.paused) {
+    revealState.paused = false;
+    // Continue from where it stopped: finish the beat that was interrupted.
+    scheduleRevealStep(revealState.remaining);
+  } else {
+    clearTimeout(revealState.timer);
+    revealState.timer = null;
+    revealState.remaining = Math.max(0, revealState.nextAt - Date.now());
+    revealState.paused = true;
+  }
+  updateRevealPauseButton();
+}
+
+function skipReveal() {
+  completeReveal();
+}
+
+// Snap every still-hidden cell to revealed (no animation) and drop the
+// controls. Returns true if a reveal was actually cut short.
+function completeReveal() {
+  if (!revealState.active) return false;
+  const hadCells = revealState.queue.length > 0;
+  revealState.queue.forEach((c) => c.classList.remove("is-hidden"));
+  stopReveal();
+  return hadCells;
+}
+
+// Reset reveal state and hide the controls. Also used before a re-render
+// replaces the table, so stale timers can't touch detached cells.
+function stopReveal() {
+  clearTimeout(revealState.timer);
+  revealState.timer = null;
+  revealState.queue = [];
+  revealState.active = false;
+  revealState.paused = false;
+  setRevealControlsVisible(false);
+}
+
+function setRevealControlsVisible(visible) {
+  const box = document.getElementById("revealControls");
+  if (!box || box.hidden === !visible) return;
+  // Don't strand keyboard focus on a button that's about to vanish.
+  const hadFocus = !visible && box.contains(document.activeElement);
+  box.hidden = !visible;
+  if (visible) updateRevealPauseButton();
+  if (hadFocus) {
+    const input = document.getElementById("guess");
+    if (input && !input.disabled) input.focus();
+  }
+}
+
+function updateRevealPauseButton() {
+  const btn = document.getElementById("revealPauseBtn");
+  if (!btn) return;
+  const paused = revealState.paused;
+  btn.setAttribute("aria-label", paused ? "Resume grid reveal" : "Pause grid reveal");
+  btn.querySelector(".reveal-control-icon").textContent = paused ? "▶︎" : "⏸︎";
+  document.getElementById("revealPauseLabel").textContent = paused ? "Resume" : "Pause";
 }
 
 function updateScrollHint() {

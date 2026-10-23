@@ -348,6 +348,12 @@
   <table id="table"></table>
 </div>
 
+<!-- Grid-reveal controls — shown only while the cell-by-cell reveal is running. -->
+<div id="revealControls" class="reveal-controls" hidden>
+  <button type="button" id="revealPauseBtn" class="reveal-control" onclick="toggleRevealPause()" aria-label="Pause grid reveal"><span class="reveal-control-icon" aria-hidden="true">&#x23F8;&#xFE0E;</span> <span id="revealPauseLabel">Pause</span></button>
+  <button type="button" id="revealSkipBtn" class="reveal-control" onclick="skipReveal()" aria-label="Skip grid reveal — show all cells"><span class="reveal-control-icon" aria-hidden="true">&#x23ED;&#xFE0E;</span> Skip</button>
+</div>
+
 <div class="table-footer">
   <div id="scrollHint" class="scroll-hint" hidden>← scroll for full career →</div>
 </div>

@@ -48,13 +48,12 @@ function toggleTheme() {
 updateThemeToggleUI(getCurrentTheme());
 
 /* ---- Data freshness gating ----------------------------
-   Results are current through Wimbledon 2026. Later 2026 slams
-   are hidden until the constants below are updated. The footer
-   notice itself is off until the next milestone is worth calling
-   out — flip SHOW_FRESHNESS_NOTICE back on (and update the label
-   text) once USOpen 2026 lands. */
+   All four 2026 slams are shown. To hide a slam that's still being
+   backfilled, add its key to DATA_FRESHNESS_HIDE_SLAMS. The footer
+   notice is off; flip SHOW_FRESHNESS_NOTICE back on (and update the
+   label text) if a caveat is ever worth calling out. */
 const DATA_FRESHNESS_YEAR = "2026";
-const DATA_FRESHNESS_HIDE_SLAMS = ["USOpen"];
+const DATA_FRESHNESS_HIDE_SLAMS = [];
 const DATA_FRESHNESS_LABEL = "Results through RG 2026";
 const DATA_FRESHNESS_LABEL_SHORT = "Results thru RG ‘26";
 const SHOW_FRESHNESS_NOTICE = false;

@@ -1336,7 +1336,7 @@
   {
     "name": "Aleksandar Kovacevic",
     "gender": "Male",
-    "nationality": "Serbia",
+    "nationality": "United States",
     "slams": {
       "AustralianOpen": {
         "2021": "A",
@@ -1729,7 +1729,7 @@
     "inPool": false
   },
   {
-    "name": "Alex Bogomolov Jr",
+    "name": "Alex Bogomolov Jr.",
     "gender": "Male",
     "nationality": "United States",
     "slams": {
@@ -1947,7 +1947,7 @@
     "autoDay": "sunday"
   },
   {
-    "name": "Alex De Minaur",
+    "name": "Alex de Minaur",
     "gender": "Male",
     "nationality": "Australia",
     "slams": {
@@ -2411,7 +2411,7 @@
   {
     "name": "Alexander Shevchenko",
     "gender": "Male",
-    "nationality": "Russia",
+    "nationality": "Kazakhstan",
     "slams": {
       "AustralianOpen": {
         "2022": "A",
@@ -3919,7 +3919,7 @@
     },
     "autoScore": 112.3,
     "inPool": true,
-    "autoDay": "sunday"
+    "autoDay": "saturday"
   },
   {
     "name": "Amanda Anisimova",
@@ -6341,7 +6341,7 @@
   {
     "name": "Anouk Koevermans",
     "gender": "Female",
-    "nationality": "Kingdom of the Netherlands",
+    "nationality": "Netherlands",
     "slams": {
       "AustralianOpen": {
         "2025": "Q2"
@@ -6484,7 +6484,7 @@
     },
     "autoScore": 130.7,
     "inPool": true,
-    "autoDay": "thursday"
+    "autoDay": "wednesday"
   },
   {
     "name": "Arantxa Sánchez Vicario",
@@ -9190,9 +9190,9 @@
     "inPool": false
   },
   {
-    "name": "Botic Van De Zandschulp",
+    "name": "Botic van de Zandschulp",
     "gender": "Male",
-    "nationality": "Kingdom of the Netherlands",
+    "nationality": "Netherlands",
     "slams": {
       "AustralianOpen": {
         "2019": "A",
@@ -10905,7 +10905,7 @@
   {
     "name": "Caroline Wozniacki",
     "gender": "Female",
-    "nationality": "Kingdom of Denmark",
+    "nationality": "Denmark",
     "slams": {
       "AustralianOpen": {
         "2006": "A",
@@ -11166,7 +11166,7 @@
     "inPool": false
   },
   {
-    "name": "Caty Mcnally",
+    "name": "Caty McNally",
     "gender": "Female",
     "nationality": "United States",
     "slams": {
@@ -11943,7 +11943,7 @@
     "autoDay": "sunday"
   },
   {
-    "name": "Christina Mchale",
+    "name": "Christina McHale",
     "gender": "Female",
     "nationality": "United States",
     "slams": {
@@ -12319,7 +12319,7 @@
   {
     "name": "Clara Tauson",
     "gender": "Female",
-    "nationality": "Kingdom of Denmark",
+    "nationality": "Denmark",
     "slams": {
       "AustralianOpen": {
         "2017": "A",
@@ -13803,7 +13803,7 @@
     },
     "autoScore": 116.5,
     "inPool": true,
-    "autoDay": "saturday"
+    "autoDay": "friday"
   },
   {
     "name": "Daniel Gimeno Traver",
@@ -19260,7 +19260,7 @@
     "autoDay": "monday"
   },
   {
-    "name": "Felix Auger Aliassime",
+    "name": "Félix Auger-Aliassime",
     "gender": "Male",
     "nationality": "Canada",
     "slams": {
@@ -19786,7 +19786,7 @@
     },
     "autoScore": 122.3,
     "inPool": true,
-    "autoDay": "friday"
+    "autoDay": "thursday"
   },
   {
     "name": "Florian Mayer",
@@ -20389,7 +20389,8 @@
       }
     },
     "autoScore": 109.4,
-    "inPool": false
+    "inPool": true,
+    "autoDay": "sunday"
   },
   {
     "name": "Gabriela Knutson",
@@ -25196,9 +25197,9 @@
     "inPool": false
   },
   {
-    "name": "Jesper De Jong",
+    "name": "Jesper de Jong",
     "gender": "Male",
-    "nationality": "Kingdom of the Netherlands",
+    "nationality": "Netherlands",
     "slams": {
       "AustralianOpen": {
         "2022": "Q3",
@@ -25235,7 +25236,7 @@
   {
     "name": "Jesse Huta Galung",
     "gender": "Male",
-    "nationality": "Kingdom of the Netherlands",
+    "nationality": "Netherlands",
     "slams": {
       "AustralianOpen": {
         "2008": "Q2",
@@ -25374,7 +25375,7 @@
     },
     "autoScore": 112.3,
     "inPool": true,
-    "autoDay": "sunday"
+    "autoDay": "saturday"
   },
   {
     "name": "Jessica Pegula",
@@ -28113,84 +28114,6 @@
     "inPool": false
   },
   {
-    "name": "Julia Goerges",
-    "gender": "Female",
-    "nationality": "Germany",
-    "slams": {
-      "AustralianOpen": {
-        "2006": "A",
-        "2007": "A",
-        "2008": "Q2",
-        "2009": "1R",
-        "2010": "2R",
-        "2011": "3R",
-        "2012": "4R",
-        "2013": "4R",
-        "2014": "2R",
-        "2015": "4R",
-        "2016": "2R",
-        "2017": "2R",
-        "2018": "2R",
-        "2019": "1R",
-        "2020": "3R"
-      },
-      "FrenchOpen": {
-        "2006": "A",
-        "2007": "A",
-        "2008": "Q3",
-        "2009": "1R",
-        "2010": "2R",
-        "2011": "3R",
-        "2012": "3R",
-        "2013": "1R",
-        "2014": "2R",
-        "2015": "4R",
-        "2016": "2R",
-        "2017": "1R",
-        "2018": "3R",
-        "2019": "1R",
-        "2020": "2R"
-      },
-      "Wimbledon": {
-        "2006": "A",
-        "2007": "A",
-        "2008": "2R",
-        "2009": "1R",
-        "2010": "1R",
-        "2011": "3R",
-        "2012": "3R",
-        "2013": "1R",
-        "2014": "1R",
-        "2015": "1R",
-        "2016": "1R",
-        "2017": "1R",
-        "2018": "SF",
-        "2019": "3R",
-        "2020": "NH"
-      },
-      "USOpen": {
-        "2006": "A",
-        "2007": "1R",
-        "2008": "1R",
-        "2009": "1R",
-        "2010": "2R",
-        "2011": "3R",
-        "2012": "1R",
-        "2013": "1R",
-        "2014": "1R",
-        "2015": "1R",
-        "2016": "2R",
-        "2017": "4R",
-        "2018": "2R",
-        "2019": "4R",
-        "2020": "A"
-      }
-    },
-    "autoScore": 136.3,
-    "inPool": true,
-    "autoDay": "wednesday"
-  },
-  {
     "name": "Julia Görges",
     "gender": "Female",
     "nationality": "Germany",
@@ -28372,7 +28295,7 @@
   {
     "name": "Juncheng Shang",
     "gender": "Male",
-    "nationality": "People's Republic of China",
+    "nationality": "China",
     "slams": {
       "AustralianOpen": {
         "2021": "A",
@@ -28807,7 +28730,7 @@
     },
     "autoScore": 116.7,
     "inPool": true,
-    "autoDay": "saturday"
+    "autoDay": "friday"
   },
   {
     "name": "Kamilla Rakhimova",
@@ -29924,7 +29847,7 @@
     "autoDay": "monday"
   },
   {
-    "name": "Kenny De Schepper",
+    "name": "Kenny de Schepper",
     "gender": "Male",
     "nationality": "France",
     "slams": {
@@ -30223,7 +30146,7 @@
   {
     "name": "Kiki Bertens",
     "gender": "Female",
-    "nationality": "Kingdom of the Netherlands",
+    "nationality": "Netherlands",
     "slams": {
       "AustralianOpen": {
         "2011": "A",
@@ -30766,88 +30689,6 @@
   },
   {
     "name": "Klara Koukalova",
-    "gender": "Female",
-    "nationality": "Czech Republic",
-    "slams": {
-      "AustralianOpen": {
-        "2001": "Q1",
-        "2002": "Q2",
-        "2003": "3R",
-        "2004": "1R",
-        "2005": "2R",
-        "2006": "1R",
-        "2007": "1R",
-        "2008": "1R",
-        "2009": "1R",
-        "2010": "1R",
-        "2011": "2R",
-        "2012": "1R",
-        "2013": "2R",
-        "2014": "1R",
-        "2015": "2R",
-        "2016": "1R"
-      },
-      "FrenchOpen": {
-        "2001": "Q2",
-        "2002": "Q1",
-        "2003": "1R",
-        "2004": "2R",
-        "2005": "2R",
-        "2006": "1R",
-        "2007": "Q2",
-        "2008": "2R",
-        "2009": "1R",
-        "2010": "2R",
-        "2011": "1R",
-        "2012": "4R",
-        "2013": "1R",
-        "2014": "1R",
-        "2015": "1R",
-        "2016": "Q3"
-      },
-      "Wimbledon": {
-        "2001": "Q2",
-        "2002": "Q1",
-        "2003": "1R",
-        "2004": "2R",
-        "2005": "1R",
-        "2006": "1R",
-        "2007": "Q3",
-        "2008": "1R",
-        "2009": "1R",
-        "2010": "4R",
-        "2011": "3R",
-        "2012": "3R",
-        "2013": "3R",
-        "2014": "2R",
-        "2015": "1R",
-        "2016": "Q1"
-      },
-      "USOpen": {
-        "2001": "Q1",
-        "2002": "Q1",
-        "2003": "1R",
-        "2004": "1R",
-        "2005": "1R",
-        "2006": "1R",
-        "2007": "1R",
-        "2008": "1R",
-        "2009": "Q3",
-        "2010": "1R",
-        "2011": "1R",
-        "2012": "1R",
-        "2013": "1R",
-        "2014": "1R",
-        "2015": "1R",
-        "2016": "A"
-      }
-    },
-    "autoScore": 122.2,
-    "inPool": true,
-    "autoDay": "friday"
-  },
-  {
-    "name": "Klara Zakopalova",
     "gender": "Female",
     "nationality": "Czech Republic",
     "slams": {
@@ -32458,7 +32299,7 @@
   {
     "name": "Lesley Pattinama Kerkhove",
     "gender": "Female",
-    "nationality": "Kingdom of the Netherlands",
+    "nationality": "Netherlands",
     "slams": {
       "AustralianOpen": {
         "2013": "A",
@@ -33635,7 +33476,8 @@
       }
     },
     "autoScore": 109.5,
-    "inPool": false
+    "inPool": true,
+    "autoDay": "sunday"
   },
   {
     "name": "Luca Van Assche",
@@ -34020,7 +33862,7 @@
     "inPool": false
   },
   {
-    "name": "Mackenzie Mcdonald",
+    "name": "Mackenzie McDonald",
     "gender": "Male",
     "nationality": "United States",
     "slams": {
@@ -35991,7 +35833,7 @@
     },
     "autoScore": 122.8,
     "inPool": true,
-    "autoDay": "friday"
+    "autoDay": "thursday"
   },
   {
     "name": "Marco Chiudinelli",
@@ -44937,7 +44779,7 @@
   {
     "name": "Quirine Lemoine",
     "gender": "Female",
-    "nationality": "Kingdom of the Netherlands",
+    "nationality": "Netherlands",
     "slams": {
       "AustralianOpen": {
         "2017": "Q1",
@@ -45281,96 +45123,6 @@
     "autoScore": 443,
     "inPool": true,
     "autoDay": "monday"
-  },
-  {
-    "name": "Rainer Schuettler",
-    "gender": "Male",
-    "nationality": "Germany",
-    "slams": {
-      "AustralianOpen": {
-        "1995": "A",
-        "1996": "Q3",
-        "1997": "Q1",
-        "1998": "Q2",
-        "1999": "1R",
-        "2000": "2R",
-        "2001": "4R",
-        "2002": "3R",
-        "2003": "F",
-        "2004": "1R",
-        "2005": "2R",
-        "2006": "1R",
-        "2007": "1R",
-        "2008": "2R",
-        "2009": "1R",
-        "2010": "2R",
-        "2011": "1R",
-        "2012": "Q2"
-      },
-      "FrenchOpen": {
-        "1995": "A",
-        "1996": "A",
-        "1997": "Q1",
-        "1998": "Q2",
-        "1999": "1R",
-        "2000": "1R",
-        "2001": "1R",
-        "2002": "2R",
-        "2003": "4R",
-        "2004": "1R",
-        "2005": "1R",
-        "2006": "1R",
-        "2007": "Q3",
-        "2008": "1R",
-        "2009": "1R",
-        "2010": "1R",
-        "2011": "1R",
-        "2012": "A"
-      },
-      "Wimbledon": {
-        "1995": "A",
-        "1996": "Q1",
-        "1997": "Q1",
-        "1998": "1R",
-        "1999": "2R",
-        "2000": "3R",
-        "2001": "2R",
-        "2002": "3R",
-        "2003": "4R",
-        "2004": "3R",
-        "2005": "1R",
-        "2006": "1R",
-        "2007": "A",
-        "2008": "SF",
-        "2009": "2R",
-        "2010": "2R",
-        "2011": "2R",
-        "2012": "A"
-      },
-      "USOpen": {
-        "1995": "A",
-        "1996": "A",
-        "1997": "Q2",
-        "1998": "Q2",
-        "1999": "1R",
-        "2000": "3R",
-        "2001": "2R",
-        "2002": "1R",
-        "2003": "4R",
-        "2004": "1R",
-        "2005": "2R",
-        "2006": "1R",
-        "2007": "1R",
-        "2008": "1R",
-        "2009": "1R",
-        "2010": "1R",
-        "2011": "A",
-        "2012": "A"
-      }
-    },
-    "autoScore": 126.5,
-    "inPool": true,
-    "autoDay": "thursday"
   },
   {
     "name": "Rainer Schüttler",
@@ -46132,7 +45884,7 @@
     },
     "autoScore": 112.4,
     "inPool": true,
-    "autoDay": "sunday"
+    "autoDay": "saturday"
   },
   {
     "name": "Renzo Olivo",
@@ -46645,7 +46397,7 @@
   {
     "name": "Richel Hogenkamp",
     "gender": "Female",
-    "nationality": "Kingdom of the Netherlands",
+    "nationality": "Netherlands",
     "slams": {
       "AustralianOpen": {
         "2012": "A",
@@ -46704,7 +46456,7 @@
     "inPool": false
   },
   {
-    "name": "Rik De Voest",
+    "name": "Rik de Voest",
     "gender": "Male",
     "nationality": "Italy",
     "slams": {
@@ -50170,7 +49922,7 @@
   {
     "name": "Tallon Griekspoor",
     "gender": "Male",
-    "nationality": "Kingdom of the Netherlands",
+    "nationality": "Netherlands",
     "slams": {
       "AustralianOpen": {
         "2017": "A",
@@ -50514,7 +50266,8 @@
       }
     },
     "autoScore": 109.4,
-    "inPool": false
+    "inPool": true,
+    "autoDay": "sunday"
   },
   {
     "name": "Taro Daniel",
@@ -51110,7 +50863,7 @@
   },
   {
     "name": "Taylor Townsend",
-    "gender": "Male",
+    "gender": "Female",
     "nationality": "United States",
     "slams": {
       "AustralianOpen": {
@@ -51335,7 +51088,7 @@
     },
     "autoScore": 116.6,
     "inPool": true,
-    "autoDay": "saturday"
+    "autoDay": "friday"
   },
   {
     "name": "Terence Atmane",
@@ -51833,9 +51586,9 @@
     "autoDay": "sunday"
   },
   {
-    "name": "Thiemo De Bakker",
+    "name": "Thiemo de Bakker",
     "gender": "Male",
-    "nationality": "Kingdom of the Netherlands",
+    "nationality": "Netherlands",
     "slams": {
       "AustralianOpen": {
         "2006": "A",
@@ -52527,9 +52280,9 @@
     "inPool": false
   },
   {
-    "name": "Tim Van Rijthoven",
+    "name": "Tim van Rijthoven",
     "gender": "Male",
-    "nationality": "Kingdom of the Netherlands",
+    "nationality": "Netherlands",
     "slams": {
       "AustralianOpen": {
         "2015": "A",
@@ -56597,7 +56350,7 @@
     "inPool": false
   },
   {
-    "name": "Ylena In Albon",
+    "name": "Ylena In-Albon",
     "gender": "Female",
     "nationality": "Switzerland",
     "slams": {

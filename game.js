@@ -1214,9 +1214,9 @@ function openTiebreak(options, opts) {
 function endRound() {
   const won = game.lastOutcome === "win" || game.lastOutcome === "tiebreak";
 
-  // Round over mid-reveal (early correct guess, or a loss/tiebreak): snap
-  // the rest of the grid in and drop the Pause/Skip controls.
-  const revealCutShort = completeReveal();
+  // Round over mid-reveal: the result modal doesn't wait for the grid. A
+  // paused reveal just resumes at its normal pace behind the modal.
+  if (revealState.paused) toggleRevealPause();
 
   // record result BEFORE locking next round
   if (game.current) {
@@ -1264,10 +1264,8 @@ function endRound() {
 
   // Open the modal first. The countdown stays hidden until the user
   // closes the modal — that dismissal becomes the "see you tomorrow"
-  // reveal moment. If the grid was just snapped in, hold the modal for a
-  // beat so the full career is actually seen before it covers the page.
-  if (revealCutShort) setTimeout(openResultModal, 900);
-  else openResultModal();
+  // reveal moment.
+  openResultModal();
 }
 
 function populateWeekStrip(containerEl) {
@@ -2283,18 +2281,11 @@ function toggleRevealPause() {
   updateRevealPauseButton();
 }
 
+// Snap every still-hidden cell to revealed (no animation) and drop the controls.
 function skipReveal() {
-  completeReveal();
-}
-
-// Snap every still-hidden cell to revealed (no animation) and drop the
-// controls. Returns true if a reveal was actually cut short.
-function completeReveal() {
-  if (!revealState.active) return false;
-  const hadCells = revealState.queue.length > 0;
+  if (!revealState.active) return;
   revealState.queue.forEach((c) => c.classList.remove("is-hidden"));
   stopReveal();
-  return hadCells;
 }
 
 // Reset reveal state and hide the controls. Also used before a re-render

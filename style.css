@@ -880,6 +880,9 @@ dialog.difficulty-dialog {
   transition: filter 0.15s;
 }
 .result-share:hover { filter: brightness(1.08); }
+.result-share[hidden],
+.result-week-divider[hidden],
+.result-week-strip[hidden] { display: none; }
 
 /* Win-only glow — additive box-shadow, no change to the button's own
    colors/shape. Breathes gently between subtle and stronger lime. */
@@ -1540,6 +1543,36 @@ th:first-child {
 .reveal-cell.skip-step-5 { transition-delay: 200ms; }
 .reveal-cell.skip-step-6 { transition-delay: 240ms; }
 .reveal-cell.skip-step-7 { transition-delay: 280ms; }
+
+/* First-visit practice round label + "Skip intro" — muted, above the
+   hint zone, gone once the intro ends. */
+.intro-banner {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 2px 0 4px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+.intro-banner[hidden] { display: none; }
+
+.intro-skip {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 
 /* Pause / Skip pills under the grid — secondary, "optional" controls,
    only present while the reveal is running. Sticky to the bottom of the

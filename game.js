@@ -81,6 +81,7 @@ function getDailyResults() {
 }
 
 function saveDailyResult(date, mode, result) {
+  if (game.isDemo) return; // practice round never writes the daily lock
   try {
     const all = getDailyResults();
     if (!all[date]) all[date] = {};
@@ -124,6 +125,7 @@ function getDayResult(dateIso) {
 }
 
 function saveDayResult(result) {
+  if (game.isDemo) return; // practice round stays out of week history
   try {
     if (localStorage.getItem(DAY_RESULT_KEY_PREFIX + result.date)) return;
     localStorage.setItem(DAY_RESULT_KEY_PREFIX + result.date, JSON.stringify(result));
@@ -145,6 +147,7 @@ const REVEAL_SEEN_KEY_PREFIX = "slamGrid.revealSeen.";
 
 // Set of seen cell keys for today's player, or null if there's no record.
 function getRevealSeen() {
+  if (game.isDemo) return null;
   try {
     const raw = localStorage.getItem(REVEAL_SEEN_KEY_PREFIX + game.date);
     const rec = raw ? JSON.parse(raw) : null;
@@ -156,7 +159,7 @@ function getRevealSeen() {
 }
 
 function addRevealSeen(keys) {
-  if (!game.date || !game.current || !keys.length) return;
+  if (game.isDemo || !game.date || !game.current || !keys.length) return;
   try {
     const seen = getRevealSeen() || new Set();
     const before = seen.size;
@@ -189,6 +192,64 @@ function shouldSkipReveal() {
   if (!saved) return false;
   if (!saved.inProgress) return true;
   return getRevealSeen() === null;
+}
+
+/* ---- First-visit intro (practice round) ---------------
+   Brand-new players get one practice round with a known player before
+   today's puzzle, using the real grid/guess/hint/tiebreak UI. While
+   game.isDemo is true, every history writer (saveDailyResult,
+   saveDayResult, addRevealSeen) is a no-op, so the practice round never
+   touches the daily lock, week strip, difficulty chart, or championship. */
+
+const INTRO_SEEN_KEY = "slamGrid.introSeen";
+const INTRO_PLAYER_NAME = "Rafael Nadal";
+
+// True only with no trace of a previous visit. The how-to flag counts as
+// history too: it covers players from before the intro existed, and makes
+// a refresh mid-practice drop straight into the real puzzle.
+function isFirstTimePlayer() {
+  try {
+    if (localStorage.getItem(INTRO_SEEN_KEY)) return false;
+    if (localStorage.getItem("slamGuesserSimple.seenHowTo.v1")) return false;
+    if (localStorage.getItem(DAILY_KEY)) return false;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k.startsWith(DAY_RESULT_KEY_PREFIX) || k.startsWith(REVEAL_SEEN_KEY_PREFIX)) return false;
+    }
+    return true;
+  } catch {
+    return false; // no storage → can't tell, so don't risk showing it to a returning player
+  }
+}
+
+function markIntroSeen() {
+  try { localStorage.setItem(INTRO_SEEN_KEY, "1"); } catch { /* ignore */ }
+}
+
+// Start the practice round. Returns false (caller plays today's puzzle)
+// if the intro player can't be found.
+function startIntro() {
+  const player = game.players.find((p) => p.name === INTRO_PLAYER_NAME);
+  if (!player) {
+    markIntroSeen();
+    return false;
+  }
+  game.isDemo = true;
+  game.introPlayer = player;
+  document.getElementById("introBanner").hidden = false;
+  next();
+  return true;
+}
+
+// Leave the practice round (via "Skip intro", "Play today's grid →", or
+// closing its result modal) and load today's real puzzle fresh.
+function endIntro() {
+  if (!game.isDemo) return;
+  game.isDemo = false;
+  game.introPlayer = null;
+  markIntroSeen();
+  document.getElementById("introBanner").hidden = true;
+  next();
 }
 
 function getMondayOfWeek(dateIso) {
@@ -580,7 +641,7 @@ async function load() {
   game.mode = getMode();
   game.date = getRequestedDate();
 
-  next();
+  if (!(isFirstTimePlayer() && startIntro())) next();
 
   // Strip any query string so the URL stays clean Wordle-style. Note:
   // ?date= / ?play= params are NOT read by this build (today-only); this
@@ -732,6 +793,16 @@ function next() {
 
   hideSuggestions();
   clearHints();
+
+  // First-visit practice round: fixed player, always animates, no restore.
+  if (game.isDemo) {
+    game.current = game.introPlayer;
+    game.previous = game.introPlayer.name;
+    game._skipReveal = false;
+    render();
+    updateUI();
+    return;
+  }
 
   // Baked schedule takes priority over live rotation.
   const scheduledName = getScheduleEntry(game.date);
@@ -1288,8 +1359,8 @@ function endRound() {
   // paused reveal just resumes at its normal pace behind the modal.
   if (revealState.paused) toggleRevealPause();
 
-  // record result BEFORE locking next round
-  if (game.current) {
+  // record result BEFORE locking next round (practice round isn't a result)
+  if (game.current && !game.isDemo) {
     game.roundHistory.push({
       player: game.current.name,
       result: won ? "correct" : game.wrong >= 3 ? "fail" : "partial",
@@ -1330,7 +1401,7 @@ function endRound() {
 
   document.getElementById("guessBtn").disabled = true;
   document.getElementById("tiebreakBtn").disabled = true;
-  document.getElementById("shareBtn").disabled = false;
+  document.getElementById("shareBtn").disabled = !!game.isDemo; // nothing to share from practice
 
   updateUI();
 
@@ -1409,7 +1480,7 @@ function openResultModal() {
   const outcome = document.getElementById("resultOutcome");
   outcome.classList.remove("is-win", "is-loss");
   outcome.classList.add(won ? "is-win" : "is-loss");
-  const champion = won && isChampionThisWeek(game.date || todayLocal());
+  const champion = won && !game.isDemo && isChampionThisWeek(game.date || todayLocal());
   outcome.textContent = champion ? "🏆 Champion" : isTiebreak ? "Tiebreak Win!" : won ? "Winner" : "Missed It";
 
   // Share button glows on any win (plain win, tiebreak, or championship —
@@ -1417,6 +1488,14 @@ function openResultModal() {
   // flag covers all three). No glow on a miss.
   const shareBtn = document.getElementById("resultShareBtn");
   if (shareBtn) shareBtn.classList.toggle("is-glowing", won);
+
+  // Practice round: no Share (nothing to share yet) and no week strip
+  // (it's about real results) — just the way into today's puzzle.
+  const demo = !!game.isDemo;
+  if (shareBtn) shareBtn.hidden = demo;
+  document.getElementById("resultPlayTodayBtn").hidden = !demo;
+  document.querySelector(".result-week-divider").hidden = demo;
+  document.getElementById("resultWeekStrip").hidden = demo;
 
   // Player name with country flag to the right
   const playerEl = document.getElementById("resultPlayer");
@@ -2821,6 +2900,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const result = document.getElementById("resultDialog");
   if (result) {
     result.addEventListener("close", () => {
+      // Closing the practice round's result (button, ×, or Esc) moves on
+      // to today's real puzzle — no countdown, the day hasn't been played.
+      if (game.isDemo) {
+        endIntro();
+        return;
+      }
       revealCountdown();
       paintRoundButton();
     });

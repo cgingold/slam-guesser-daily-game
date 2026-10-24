@@ -140,33 +140,28 @@ function saveDayResult(result) {
    the early-win reveal % can't be gamed by reloading and pausing early.
    Cells are keyed by slam:year, not reveal order, because desktop and
    mobile reveal in different orders.
+   `paused` remembers a paused reveal so a refresh comes back paused.
    Key:   slamGrid.revealSeen.YYYY-MM-DD
-   Value: { player, keys: ["AustralianOpen:2019", ...] }  (today only) */
+   Value: { player, keys: ["AustralianOpen:2019", ...], paused }  (today only) */
 
 const REVEAL_SEEN_KEY_PREFIX = "slamGrid.revealSeen.";
 
-// Set of seen cell keys for today's player, or null if there's no record.
-function getRevealSeen() {
+// Today's record for the current player, or null if there isn't one.
+function readRevealRecord() {
   if (game.isDemo) return null;
   try {
     const raw = localStorage.getItem(REVEAL_SEEN_KEY_PREFIX + game.date);
     const rec = raw ? JSON.parse(raw) : null;
-    if (!rec || rec.player !== game.current?.name) return null;
-    return new Set(rec.keys);
+    return rec && rec.player === game.current?.name ? rec : null;
   } catch {
     return null;
   }
 }
 
-function addRevealSeen(keys) {
-  if (game.isDemo || !game.date || !game.current || !keys.length) return;
+function writeRevealRecord(rec) {
+  if (game.isDemo || !game.date || !game.current) return;
   try {
-    const seen = getRevealSeen() || new Set();
-    const before = seen.size;
-    keys.forEach((k) => seen.add(k));
-    if (seen.size === before) return;
-    localStorage.setItem(REVEAL_SEEN_KEY_PREFIX + game.date,
-      JSON.stringify({ player: game.current.name, keys: [...seen] }));
+    localStorage.setItem(REVEAL_SEEN_KEY_PREFIX + game.date, JSON.stringify(rec));
     // Only today's record matters — drop older days'.
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
@@ -179,8 +174,36 @@ function addRevealSeen(keys) {
   }
 }
 
+// Set of seen cell keys for today's player, or null if there's no record.
+function getRevealSeen() {
+  const rec = readRevealRecord();
+  return rec ? new Set(rec.keys) : null;
+}
+
+function addRevealSeen(keys) {
+  if (game.isDemo || !game.current || !keys.length) return;
+  const rec = readRevealRecord() || { player: game.current.name, keys: [] };
+  const seen = new Set(rec.keys);
+  const before = seen.size;
+  keys.forEach((k) => seen.add(k));
+  if (seen.size === before) return;
+  writeRevealRecord({ ...rec, keys: [...seen] });
+}
+
+function isRevealPausedStored() {
+  return !!readRevealRecord()?.paused;
+}
+
+function storeRevealPaused(paused) {
+  if (game.isDemo || !game.current) return;
+  const rec = readRevealRecord() || { player: game.current.name, keys: [] };
+  if (!!rec.paused === paused) return;
+  writeRevealRecord({ ...rec, paused });
+}
+
 function markAllCellsSeen() {
   addRevealSeen([...document.querySelectorAll("#table .reveal-cell")].map((c) => c.dataset.key));
+  storeRevealPaused(false); // nothing left to be paused on
 }
 
 // Skip the reveal animation outright only once the day is finished. A
@@ -1454,7 +1477,7 @@ function populateWeekStrip(containerEl) {
       const pct = isDayWon(result) ? partialRevealPct(result.revealPct) : null;
       if (pct !== null) {
         pctEl.textContent = `${pct}%`;
-        pctEl.setAttribute("aria-label", `${pct}% of career revealed`);
+        pctEl.setAttribute("aria-label", `${pct}% of their career revealed`);
       }
       cell.appendChild(pctEl);
     }
@@ -1518,7 +1541,7 @@ function openResultModal() {
   const revealEl = document.getElementById("resultReveal");
   const pct = won ? partialRevealPct(game.revealPct) : null;
   revealEl.hidden = pct === null;
-  revealEl.textContent = pct === null ? "" : `Solved with ${pct}% of the career revealed`;
+  revealEl.textContent = pct === null ? "" : `Solved with ${pct}% of their career revealed`;
 
   dlg.showModal();
   populateWeekStrip(document.getElementById("resultWeekStrip"));
@@ -1886,7 +1909,7 @@ async function buildStoryImage() {
     ctx.closePath();
   }
 
-  // An early win adds a "with N% of the career revealed" line under the
+  // An early win adds a "with N% of their career revealed" line under the
   // result; logo + result shift up to make room so the grid stays put.
   const isTiebreak = game.lastOutcome === "tiebreak";
   const won = game.lastOutcome === "win" || isTiebreak;
@@ -1932,7 +1955,7 @@ async function buildStoryImage() {
   if (revealPct !== null) {
     ctx.fillStyle = "#a5e85a";
     ctx.font = "italic 36px Georgia, serif";
-    ctx.fillText(`with only ${revealPct}% of the career revealed`, W / 2, 582);
+    ctx.fillText(`with only ${revealPct}% of their career revealed`, W / 2, 582);
   }
 
   // 3. PROMPT (fixed y)
@@ -2037,21 +2060,12 @@ async function buildStoryImage() {
       ctx.stroke();
     }
 
-    // An early win stacks a reveal % under its ✅ — same cell size, tighter rows.
-    const dayPct = isDayWon(result) ? partialRevealPct(result.revealPct) : null;
-
     ctx.textAlign = "center";
     ctx.fillStyle = "#9ab8b0";
     ctx.font = "bold 24px Georgia, serif";
-    ctx.fillText(DAY_LABELS[i], cellCx, stripTop + (dayPct !== null ? 26 : 32));
+    ctx.fillText(DAY_LABELS[i], cellCx, stripTop + 32);
 
-    if (result && dayPct !== null) {
-      ctx.font = "28px serif";
-      drawEmojiCentered("✅", cellCx, stripTop + 47, 28);
-      ctx.fillStyle = "#a5e85a";
-      ctx.font = "bold 18px Georgia, serif";
-      ctx.fillText(`${dayPct}%`, cellCx, stripTop + 73);
-    } else if (result) {
+    if (result) {
       const emojiMarker = isDayWon(result) ? "✅" : "❌";
       ctx.font = "34px serif";
       drawEmojiCentered(emojiMarker, cellCx, stripTop + 59, 34);
@@ -2449,6 +2463,14 @@ function animateReveal(numCols, numRows, rowMajor = false) {
   revealState.rowMajor = rowMajor;
   revealState.numCols = numCols;
   setRevealControlsVisible(true);
+
+  // Paused before a refresh → come back paused, on "Resume".
+  if (isRevealPausedStored()) {
+    revealState.paused = true;
+    revealState.remaining = 0;
+    updateRevealPauseButton();
+    return;
+  }
   scheduleRevealStep(0);
 }
 
@@ -2461,7 +2483,10 @@ function revealStep() {
   revealState.timer = null;
   const cell = revealState.queue.shift();
   // Queue drained: the last cell's stamp has played out — hide the controls.
-  if (!cell) return stopReveal();
+  if (!cell) {
+    storeRevealPaused(false);
+    return stopReveal();
+  }
   stampCell(cell);
   scheduleRevealStep(REVEAL_STAGGER_MS);
 }
@@ -2501,6 +2526,7 @@ function toggleRevealPause() {
     revealState.remaining = Math.max(0, revealState.nextAt - Date.now());
     revealState.paused = true;
   }
+  storeRevealPaused(revealState.paused); // survives a refresh
   updateRevealPauseButton();
 }
 
@@ -2517,6 +2543,7 @@ function skipReveal() {
   void document.getElementById("table").offsetWidth; // commit the plate as the transition's start
   cells.forEach((c) => c.classList.remove("is-hidden"));
   addRevealSeen(cells.map((c) => c.dataset.key));
+  storeRevealPaused(false);
   setTimeout(() => cells.forEach((c, i) => c.classList.remove("is-skipping", stepClass(i))), 1000);
   stopReveal();
 }
@@ -2795,7 +2822,7 @@ function openDifficultyDialog() {
       const pctEl = document.createElement("div");
       pctEl.className = "diff-pct";
       pctEl.textContent = `${pct}%`;
-      pctEl.setAttribute("aria-label", `${pct}% of career revealed`);
+      pctEl.setAttribute("aria-label", `${pct}% of their career revealed`);
       el.appendChild(pctEl);
     };
 

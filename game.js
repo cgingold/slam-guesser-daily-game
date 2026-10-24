@@ -2550,11 +2550,21 @@ function render() {
    Driven by a single timer walking a queue (rather than one setTimeout
    per cell scheduled up front) so the player can pause, resume, or skip
    it via the Pause/Skip pills under the grid. */
-const REVEAL_STAGGER_MS = 350; // per-cell beat
+// Per-cell beat scales with grid size so short careers don't flash by:
+// the full reveal takes at least REVEAL_MIN_TOTAL_MS, within the beat bounds.
+const REVEAL_BEAT_MIN_MS = 400;
+const REVEAL_BEAT_MAX_MS = 900;
+const REVEAL_MIN_TOTAL_MS = 16000;
+
+function revealBeatFor(totalCells) {
+  const beat = REVEAL_MIN_TOTAL_MS / Math.max(1, totalCells);
+  return Math.round(Math.min(REVEAL_BEAT_MAX_MS, Math.max(REVEAL_BEAT_MIN_MS, beat)));
+}
 
 const revealState = {
   active: false,  // reveal in progress
   paused: false,  // currently paused
+  beat: REVEAL_BEAT_MIN_MS, // ms between cells for the current grid
   queue: [],      // cells not yet revealed, in order
   timer: null,    // pending setTimeout id
   nextAt: 0,      // when the pending step fires (for resuming mid-beat)
@@ -2617,6 +2627,7 @@ function animateReveal(numCols, numRows, rowMajor = false) {
   };
 
   revealState.queue = unseen.sort((a, b) => orderOf(a) - orderOf(b));
+  revealState.beat = revealBeatFor(cells.length); // whole grid, so a resumed reveal keeps its pace
   revealState.active = true;
   revealState.paused = false;
   revealState.rowMajor = rowMajor;
@@ -2647,7 +2658,7 @@ function revealStep() {
     return stopReveal();
   }
   stampCell(cell);
-  scheduleRevealStep(REVEAL_STAGGER_MS);
+  scheduleRevealStep(revealState.beat);
 }
 
 function stampCell(cell) {

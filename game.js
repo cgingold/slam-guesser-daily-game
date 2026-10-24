@@ -241,7 +241,7 @@ function startIntro() {
   return true;
 }
 
-// Leave the practice round (via "Skip intro", "Play today's grid →", or
+// Leave the practice round (via "Skip practice", "Play today's grid →", or
 // closing its result modal) and load today's real puzzle fresh.
 function endIntro() {
   if (!game.isDemo) return;

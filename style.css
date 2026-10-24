@@ -692,6 +692,71 @@ dialog.difficulty-dialog {
 
 .howto-body:last-child { margin-bottom: 0; }
 
+/* How-to visual anchors: a tiny example grid + key, and sample hint
+   cards. Colors come from the real result / hint-card classes. */
+.howto-example {
+  margin: -2px 0 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.howto-mini-grid {
+  display: grid;
+  grid-template-columns: 22px repeat(4, 30px);
+  grid-auto-rows: 14px;
+  gap: 2px;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.mini-year,
+.mini-slam { text-align: center; }
+.mini-slam { text-align: right; padding-right: 3px; }
+
+.mini-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 14px;
+  min-width: 22px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 9px;
+  line-height: 1;
+}
+.howto-mini-grid .mini-cell { width: 100%; }
+
+.howto-mini-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 10px;
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+.howto-mini-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.howto-hint-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -6px 0 14px;
+}
+.howto-hint-examples .hint-card {
+  padding: 3px 9px;
+  font-size: 11px;
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+
 .howto-body strong {
   color: var(--ink);
   font-weight: 700;
@@ -1544,7 +1609,7 @@ th:first-child {
 .reveal-cell.skip-step-6 { transition-delay: 240ms; }
 .reveal-cell.skip-step-7 { transition-delay: 280ms; }
 
-/* First-visit practice round label + "Skip intro" — muted, above the
+/* First-visit practice round label + "Skip practice" — muted, above the
    hint zone, gone once the intro ends. */
 .intro-banner {
   display: flex;

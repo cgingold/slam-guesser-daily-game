@@ -147,11 +147,37 @@
             onclick="document.getElementById('howToDialog').close()">×</button>
     <h2 class="howto-title is-branded">How to Play <span class="brand-text">SLAM GRID</span></h2>
     <p class="howto-body">
-      Each day a new grid reveals a tennis pro's career Grand Slam results — your job is to guess who it is.
+      Each day a new grid reveals a tennis pro's career Grand Slam results — your job is to guess who it is. Guess early — the less you see, the better.
     </p>
+
+    <!-- Illustrative mini-grid (not a real player) + key result colors.
+         Cells reuse the real grid's result classes (.W, .SF, ...). -->
+    <div class="howto-example" role="img"
+         aria-label="Example grid: four slams by year, colored by how far the player got — W won, SF semifinal, QF quarterfinal, R2 early round, A absent, NH not held.">
+      <div class="howto-mini-grid" aria-hidden="true">
+        <span></span><span class="mini-year">'18</span><span class="mini-year">'19</span><span class="mini-year">'20</span><span class="mini-year">'21</span>
+        <span class="mini-slam">AO</span><span class="mini-cell R2">R2</span><span class="mini-cell QF">QF</span><span class="mini-cell SF">SF</span><span class="mini-cell W">W</span>
+        <span class="mini-slam">RG</span><span class="mini-cell A">A</span><span class="mini-cell R2">R2</span><span class="mini-cell QF">QF</span><span class="mini-cell SF">SF</span>
+        <span class="mini-slam">W</span><span class="mini-cell QF">QF</span><span class="mini-cell SF">SF</span><span class="mini-cell NH">NH</span><span class="mini-cell W">W</span>
+        <span class="mini-slam">US</span><span class="mini-cell R2">R2</span><span class="mini-cell W">W</span><span class="mini-cell A">A</span><span class="mini-cell QF">QF</span>
+      </div>
+      <div class="howto-mini-legend" aria-hidden="true">
+        <span><span class="mini-cell W">W</span> Won</span>
+        <span><span class="mini-cell SF">SF</span> Semifinal</span>
+        <span><span class="mini-cell QF">QF</span> Quarterfinal</span>
+        <span><span class="mini-cell R2">R2</span> Early round</span>
+        <span><span class="mini-cell A">A</span> Absent</span>
+      </div>
+    </div>
+
     <p class="howto-body">
       You get three guesses. Each miss reveals a hint.
     </p>
+    <!-- Illustrative hint cards — same classes as the real ones, scaled down. -->
+    <div class="howto-hint-examples" aria-hidden="true">
+      <span class="hint-card gender-card female">👤 Gender</span>
+      <span class="hint-card nation-card">🌍 Country</span>
+    </div>
     <p class="howto-body">
       Or play a Tiebreak at any point — a timed, multiple-choice shot at the answer. Win it and you're through; lose it and the round is over.
     </p>
@@ -347,7 +373,7 @@
 <!-- First-visit practice round (Rafael Nadal) — shown only during the intro demo. -->
 <div id="introBanner" class="intro-banner" hidden>
   <span class="intro-banner-label">Practice round — try to name this player</span>
-  <button type="button" class="intro-skip" onclick="endIntro()">Skip intro</button>
+  <button type="button" class="intro-skip" onclick="endIntro()">Skip practice</button>
 </div>
 
 <div id="hintPanel"></div>

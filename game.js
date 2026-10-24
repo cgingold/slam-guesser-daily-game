@@ -108,7 +108,9 @@ function getDailyResult(date, mode) {
 /* ---- Per-day game history (week strip) ----------------
    One localStorage entry per day, never overwritten (first play wins).
    Key:   slamGrid.dayResult.YYYY-MM-DD
-   Value: { date, dayOfWeek, round, outcome, guesses, player } */
+   Value: { date, dayOfWeek, round, outcome, guesses, player, revealPct }
+   revealPct: share of the grid visible at the winning guess (wins only;
+   null on a miss, absent on entries saved before it existed). */
 
 const DAY_RESULT_KEY_PREFIX = "slamGrid.dayResult.";
 
@@ -190,6 +192,7 @@ function maybeRestoreFinishedDaily() {
   // Reset the round state to match the saved state
   game.wrong = saved.wrong;
   game.lastOutcome = saved.outcome;
+  game.revealPct = saved.revealPct ?? null;
   game.wrongGuessNames = saved.wrongGuessNames || [];
 
   const inProgress = !!saved.inProgress && saved.outcome === null;
@@ -661,6 +664,7 @@ function next() {
   shareBtn.disabled = true;
 
   game.lastOutcome = null;
+  game.revealPct = null;
 
   document.getElementById("guessBtn").disabled = false;
   document.getElementById("tiebreakBtn").disabled = false;
@@ -769,6 +773,7 @@ function guess() {
 
   if (ok) {
     game.lastOutcome = "win";
+    game.revealPct = currentRevealPct();
     game.lockProgressHints = true; // only block gender/nation hints
 
     showHints(true);
@@ -1053,6 +1058,10 @@ function openTiebreak(options, opts) {
   document.getElementById("guessBtn").disabled = true;
   document.getElementById("tiebreakBtn").disabled = true;
 
+  // The grid is covered from here on, so a tiebreak win is credited with
+  // what was visible when it started, not what revealed behind the dialog.
+  const revealPctAtStart = currentRevealPct();
+
   const introEl = document.getElementById("tiebreakIntro");
   const playEl = document.getElementById("tiebreakPlay");
   const readyBtn = document.getElementById("tiebreakReadyBtn");
@@ -1110,6 +1119,7 @@ function openTiebreak(options, opts) {
     detachLifecycleGuards();
     optionsEl.querySelectorAll("button").forEach((b) => { b.disabled = true; });
     game.lastOutcome = won ? "tiebreak" : "lose";
+    game.revealPct = won ? revealPctAtStart : null;
     // Whatever guess count the tiebreak was triggered at (0-3), any
     // gender/nation hint due by that point was already shown by an
     // earlier wrong guess — block showHints() from re-adding it here.
@@ -1236,6 +1246,7 @@ function endRound() {
       playerSnapshot: game.current,
       wrong: game.wrong,
       outcome: game.lastOutcome,
+      revealPct: won ? game.revealPct : null,
     });
     // Per-day history for the week strip (first attempt only). "tiebreak"
     // counts as won everywhere (championship, week-strip ✓) but keeps its
@@ -1250,6 +1261,7 @@ function endRound() {
       outcome: histOutcome,
       guesses: game.lastOutcome === "win" ? game.wrong + 1 : game.wrong,
       player: game.current.name,
+      revealPct: won ? game.revealPct : null,
     });
     paintRoundButton();
   }
@@ -1273,6 +1285,7 @@ function populateWeekStrip(containerEl) {
   const todayIso = game.date || todayLocal();
   const weekResults = getWeekResults(todayIso);
   const todayIdx = dayOfWeekIndex(todayIso);
+  const showPctRow = weekResults.some((r) => isDayWon(r) && partialRevealPct(r.revealPct) !== null);
 
   containerEl.innerHTML = "";
 
@@ -1301,6 +1314,19 @@ function populateWeekStrip(containerEl) {
       markerEl.textContent = isDayWon(result) ? "✅" : "❌";
     }
     cell.appendChild(markerEl);
+
+    // Reveal % under the ✅ for early wins; the row only exists when some
+    // day this week has one, so a week without any adds no height.
+    if (showPctRow) {
+      const pctEl = document.createElement("span");
+      pctEl.className = "week-cell-pct";
+      const pct = isDayWon(result) ? partialRevealPct(result.revealPct) : null;
+      if (pct !== null) {
+        pctEl.textContent = `${pct}%`;
+        pctEl.setAttribute("aria-label", `${pct}% of career revealed`);
+      }
+      cell.appendChild(pctEl);
+    }
 
     containerEl.appendChild(cell);
   });
@@ -1348,6 +1374,12 @@ function openResultModal() {
       playerEl.appendChild(flagSpan);
     }
   }
+
+  // Early-win brag line: how little of the career was showing.
+  const revealEl = document.getElementById("resultReveal");
+  const pct = won ? partialRevealPct(game.revealPct) : null;
+  revealEl.hidden = pct === null;
+  revealEl.textContent = pct === null ? "" : `Solved with ${pct}% of the career revealed`;
 
   dlg.showModal();
   populateWeekStrip(document.getElementById("resultWeekStrip"));
@@ -1715,12 +1747,19 @@ async function buildStoryImage() {
     ctx.closePath();
   }
 
+  // An early win adds a "with N% of the career revealed" line under the
+  // result; logo + result shift up to make room so the grid stays put.
+  const isTiebreak = game.lastOutcome === "tiebreak";
+  const won = game.lastOutcome === "win" || isTiebreak;
+  const revealPct = won ? partialRevealPct(game.revealPct) : null;
+  const lift = revealPct !== null ? 40 : 0;
+
   // 1. LOGO — draw og_image.png preserving its natural aspect ratio
   try {
     const logo = await loadImage("./og_image.png");
     const logoW = 720;
     const logoH = logoW * (logo.height / logo.width);
-    ctx.drawImage(logo, (W - logoW) / 2, 160, logoW, logoH);
+    ctx.drawImage(logo, (W - logoW) / 2, 160 - lift, logoW, logoH);
   } catch {
     ctx.textAlign = "center";
     ctx.fillStyle = "#ffffff";
@@ -1732,8 +1771,6 @@ async function buildStoryImage() {
   }
 
   // 2. RESULT LINE (fixed y)
-  const isTiebreak = game.lastOutcome === "tiebreak";
-  const won = game.lastOutcome === "win" || isTiebreak;
   const guessNum = won ? game.wrong + 1 : null;
   const todayForChampion = game.date || todayLocal();
   let resultLine, resultColor;
@@ -1751,7 +1788,13 @@ async function buildStoryImage() {
   ctx.textAlign = "center";
   ctx.fillStyle = resultColor;
   ctx.font = "bold 62px Georgia, serif";
-  ctx.fillText(resultLine, W / 2, 565);
+  ctx.fillText(resultLine, W / 2, 565 - lift);
+
+  if (revealPct !== null) {
+    ctx.fillStyle = "#a5e85a";
+    ctx.font = "italic 36px Georgia, serif";
+    ctx.fillText(`with only ${revealPct}% of the career revealed`, W / 2, 582);
+  }
 
   // 3. PROMPT (fixed y)
   ctx.fillStyle = "#ffffff";
@@ -1855,12 +1898,21 @@ async function buildStoryImage() {
       ctx.stroke();
     }
 
+    // An early win stacks a reveal % under its ✅ — same cell size, tighter rows.
+    const dayPct = isDayWon(result) ? partialRevealPct(result.revealPct) : null;
+
     ctx.textAlign = "center";
     ctx.fillStyle = "#9ab8b0";
     ctx.font = "bold 24px Georgia, serif";
-    ctx.fillText(DAY_LABELS[i], cellCx, stripTop + 32);
+    ctx.fillText(DAY_LABELS[i], cellCx, stripTop + (dayPct !== null ? 26 : 32));
 
-    if (result) {
+    if (result && dayPct !== null) {
+      ctx.font = "28px serif";
+      drawEmojiCentered("✅", cellCx, stripTop + 47, 28);
+      ctx.fillStyle = "#a5e85a";
+      ctx.font = "bold 18px Georgia, serif";
+      ctx.fillText(`${dayPct}%`, cellCx, stripTop + 73);
+    } else if (result) {
       const emojiMarker = isDayWon(result) ? "✅" : "❌";
       ctx.font = "34px serif";
       drawEmojiCentered(emojiMarker, cellCx, stripTop + 59, 34);
@@ -2201,6 +2253,21 @@ function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
+// Share of the career grid visible right now, 1-100. Floored so it only
+// reads 100 when every cell is actually showing.
+function currentRevealPct() {
+  const total = document.querySelectorAll("#table .reveal-cell").length;
+  const hidden = document.querySelectorAll("#table .reveal-cell.is-hidden").length;
+  if (!total || !hidden) return 100;
+  return Math.max(1, Math.floor(((total - hidden) / total) * 100));
+}
+
+// The reveal % worth bragging about: only when the win came before the
+// whole grid was showing. Null otherwise (full grid, a miss, old records).
+function partialRevealPct(pct) {
+  return typeof pct === "number" && pct < 100 ? pct : null;
+}
+
 function animateReveal(numCols, numRows, rowMajor = false) {
   stopReveal();
 
@@ -2281,10 +2348,19 @@ function toggleRevealPause() {
   updateRevealPauseButton();
 }
 
-// Snap every still-hidden cell to revealed (no animation) and drop the controls.
+// Reveal every still-hidden cell at once and drop the controls. The cells
+// count as revealed immediately; visually they cross-fade from the grey
+// plate in a quick wave (SKIP_STEPS delay classes, in reveal order)
+// rather than all snapping in on one frame.
+const SKIP_STEPS = 8;
 function skipReveal() {
   if (!revealState.active) return;
-  revealState.queue.forEach((c) => c.classList.remove("is-hidden"));
+  const cells = revealState.queue;
+  const stepClass = (i) => `skip-step-${Math.floor((i * SKIP_STEPS) / cells.length)}`;
+  cells.forEach((c, i) => c.classList.add("is-skipping", stepClass(i)));
+  void document.getElementById("table").offsetWidth; // commit the plate as the transition's start
+  cells.forEach((c) => c.classList.remove("is-hidden"));
+  setTimeout(() => cells.forEach((c, i) => c.classList.remove("is-skipping", stepClass(i))), 1000);
   stopReveal();
 }
 
@@ -2552,6 +2628,19 @@ function openDifficultyDialog() {
     if (prevOutcome) prevOutcome.remove();
     const prevBadge = el.querySelector(".diff-badge");
     if (prevBadge) prevBadge.remove();
+    const prevPct = el.querySelector(".diff-pct");
+    if (prevPct) prevPct.remove();
+
+    // Early-win reveal % under the pill (same rule as the week strip)
+    const appendRevealPct = (result) => {
+      const pct = isDayWon(result) ? partialRevealPct(result.revealPct) : null;
+      if (pct === null) return;
+      const pctEl = document.createElement("div");
+      pctEl.className = "diff-pct";
+      pctEl.textContent = `${pct}%`;
+      pctEl.setAttribute("aria-label", `${pct}% of career revealed`);
+      el.appendChild(pctEl);
+    };
 
     // Sunday pill: switch to green W on championship, restore to purple F otherwise
     const haloEl = el.querySelector(".diff-halo");
@@ -2566,6 +2655,7 @@ function openDifficultyDialog() {
         trophy.className = "diff-outcome";
         trophy.textContent = "🏆";
         el.appendChild(trophy);
+        appendRevealPct(weekResults[dayIdx]);
         // Champion Sunday: the green W + trophy already say "won" —
         // no corner badge on top of it.
         return;
@@ -2593,6 +2683,7 @@ function openDifficultyDialog() {
         badge.textContent = "✕";
       }
       el.appendChild(badge);
+      appendRevealPct(result);
     } else if (dayIdx === todayIdx) {
       // Today, not yet played — the white "today" ring already signals
       // this; a badge here would be redundant.

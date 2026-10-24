@@ -445,6 +445,23 @@ dialog.difficulty-dialog {
   font-weight: 700;
   line-height: 1;
 }
+/* Reveal % under an early-win pill. Out of flow so the pill keeps its
+   height — otherwise the grid row stretches and every corner badge
+   (bottom-anchored to its pill) drops off the halo. */
+.diff-pct {
+  position: absolute;
+  top: calc(100% + 9px);
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+}
+.diff-outcome + .diff-pct { top: calc(100% + 4px); }
+
 .diff-badge.is-won     { background: #16a34a; color: #ffffff; }
 .diff-badge.is-missed  { background: #b8512a; color: #ffffff; }
 .diff-badge.is-unplayed {
@@ -838,6 +855,16 @@ dialog.difficulty-dialog {
   font-size: 20px;
   line-height: 1;
 }
+
+/* "Solved with 34% of the career revealed" — early-win brag line */
+.result-reveal {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--accent);
+  margin: -14px 0 20px;
+}
+.result-reveal[hidden] { display: none; }
 
 .result-share {
   background: var(--accent);
@@ -1500,6 +1527,20 @@ th:first-child {
   100% { transform: scale(1.0);  opacity: 1; }
 }
 
+/* Skip: remaining cells cross-fade from the grey plate to their real
+   colors in a quick wave (step classes set by skipReveal(), in reveal
+   order) instead of every cell snapping in on the same frame. */
+.reveal-cell.is-skipping {
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+.reveal-cell.skip-step-1 { transition-delay: 40ms; }
+.reveal-cell.skip-step-2 { transition-delay: 80ms; }
+.reveal-cell.skip-step-3 { transition-delay: 120ms; }
+.reveal-cell.skip-step-4 { transition-delay: 160ms; }
+.reveal-cell.skip-step-5 { transition-delay: 200ms; }
+.reveal-cell.skip-step-6 { transition-delay: 240ms; }
+.reveal-cell.skip-step-7 { transition-delay: 280ms; }
+
 /* Pause / Skip pills under the grid — secondary, "optional" controls,
    only present while the reveal is running. Sticky to the bottom of the
    screen: on a long career (or a phone with Safari's toolbars showing)
@@ -1737,6 +1778,16 @@ th:first-child {
 
 .week-cell.is-won .week-cell-marker { color: #4ade80; }
 
+/* Reveal % under an early win's ✅ (empty but height-holding on other days) */
+.week-cell-pct {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  height: 9px;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
 .week-cell.is-today {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
@@ -1811,6 +1862,13 @@ th:first-child {
     border-width: 1.5px;
     font-size: 8px;
   }
+  .diff-pct { top: calc(100% + 7px); font-size: 9px; }
+
+  /* Bigger, thumb-friendly Pause/Skip pills on phones */
+  .reveal-control { padding: 8px 18px; font-size: 14px; }
+  .reveal-control-icon { font-size: 12px; }
+  .reveal-controls { gap: 10px; }
+  .diff-pills:has(.diff-pct) { margin-bottom: 24px; }
 
   .date-btn { padding: 5px 10px; font-size: 11px; }
   .date-btn svg { width: 12px; height: 12px; }

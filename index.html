@@ -46,7 +46,7 @@
 <!-- ?v= busts GitHub Pages' 10-minute cache so a deploy can't pair new
      markup with stale JS/CSS. Bump it on every deploy; game.js reads it
      from its own script tag and reuses it for the JSON data files. -->
-<link rel="stylesheet" href="./style.css?v=20261023-1">
+<link rel="stylesheet" href="./style.css?v=20261023-2">
 </head>
 
 <body>
@@ -145,12 +145,12 @@
 
 <dialog id="howToDialog" class="howto-dialog">
   <div class="howto-inner">
-    <button class="howto-close"
+    <button class="howto-close" id="howToClose"
             aria-label="Close"
             onclick="document.getElementById('howToDialog').close()">×</button>
     <h2 class="howto-title is-branded">How to Play <span class="brand-text">SLAM GRID</span></h2>
     <p class="howto-body">
-      Each day a new grid reveals a tennis pro's career Grand Slam results — your job is to guess who it is. Guess early — the less revealed, the more impressive.
+      Each day a new grid reveals a tennis pro's career Grand Slam results — your job is to guess who it is.
     </p>
 
     <!-- Illustrative mini-grid (not a real player) + key result colors.
@@ -187,7 +187,12 @@
     <p class="howto-body">
       The game gets harder all week — Monday is R1, Sunday is the Final. Win all seven to become a Champion 🏆
     </p>
-    <div class="howto-vamos">Vamos!</div>
+    <div class="howto-vamos" id="howToVamos">Vamos!</div>
+    <!-- First visit only: no × and no Esc — the player picks one of these. -->
+    <div class="confirm-actions howto-choice" id="howToChoice" hidden>
+      <button class="confirm-secondary" onclick="choosePracticeRound()">Practice round</button>
+      <button class="confirm-primary" onclick="choosePlayToday()">Play today's grid</button>
+    </div>
   </div>
 </dialog>
 
@@ -381,12 +386,14 @@
 
 <!-- First-visit practice round (Rafael Nadal) — shown only during the intro demo. -->
 <div id="introBanner" class="intro-banner" hidden>
-  <span class="intro-banner-label">Practice round — try to name this player</span>
   <button type="button" class="intro-skip" onclick="endIntro()">Skip practice</button>
 </div>
 
 <div id="hintPanel"></div>
 
+<!-- Practice round only: sits on the grid's dashed outline (outside the
+     scroll container so it isn't clipped). -->
+<div class="practice-grid-label" aria-hidden="true">Practice round</div>
 <div class="table-wrap">
   <table id="table"></table>
 </div>
@@ -394,7 +401,7 @@
 <!-- Grid-reveal controls — shown only while the cell-by-cell reveal is running. -->
 <div id="revealControls" class="reveal-controls" hidden>
   <button type="button" id="revealPauseBtn" class="reveal-control" onclick="toggleRevealPause()" aria-label="Pause grid reveal"><span class="reveal-control-icon" aria-hidden="true">&#x23F8;&#xFE0E;</span> <span id="revealPauseLabel">Pause</span></button>
-  <button type="button" id="revealSkipBtn" class="reveal-control" onclick="skipReveal()" aria-label="Skip grid reveal — show all cells"><span class="reveal-control-icon" aria-hidden="true">&#x23ED;&#xFE0E;</span> Skip</button>
+  <button type="button" id="revealSkipBtn" class="reveal-control" onclick="skipReveal()" aria-label="Show all grid cells now"><span class="reveal-control-icon" aria-hidden="true">&#x23ED;&#xFE0E;</span> Show all</button>
 </div>
 
 <div class="table-footer">
@@ -485,7 +492,7 @@
 
 </div><!-- /.app -->
 
-<script src="./game.js?v=20261023-1"></script>
+<script src="./game.js?v=20261023-2"></script>
 
 
 </body>

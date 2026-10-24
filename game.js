@@ -267,6 +267,7 @@ function startIntro() {
   game.isDemo = true;
   game.introPlayer = player;
   document.getElementById("introBanner").hidden = false;
+  document.body.classList.add("is-practice");
   next();
   return true;
 }
@@ -279,7 +280,35 @@ function endIntro() {
   game.introPlayer = null;
   markIntroSeen();
   document.getElementById("introBanner").hidden = true;
+  document.body.classList.remove("is-practice");
   next();
+}
+
+// First-visit How to Play: no × and no Esc — the player chooses between the
+// practice round and today's grid. Opened later from the info icon it's the
+// normal dialog (× + "Vamos!").
+function setHowToChoiceMode(on) {
+  document.getElementById("howToClose").hidden = on;
+  document.getElementById("howToVamos").hidden = on;
+  document.getElementById("howToChoice").hidden = !on;
+  game.howToChoice = on;
+}
+
+function markHowToSeen() {
+  try { localStorage.setItem("slamGuesserSimple.seenHowTo.v1", "1"); } catch { /* ignore */ }
+}
+
+// The practice round is already loaded behind the dialog; closing it
+// starts the reveal.
+function choosePracticeRound() {
+  markHowToSeen();
+  document.getElementById("howToDialog").close();
+}
+
+function choosePlayToday() {
+  markHowToSeen();
+  endIntro(); // loads today's grid; its reveal waits for the dialog to close
+  document.getElementById("howToDialog").close();
 }
 
 function getMondayOfWeek(dateIso) {
@@ -2799,6 +2828,14 @@ function maybeShowFirstTimeHowTo() {
     if (localStorage.getItem(KEY)) return;
     const dlg = document.getElementById("howToDialog");
     if (dlg && typeof dlg.showModal === "function") {
+      if (game.isDemo) {
+        // Brand-new player: force the practice-or-today choice. The seen
+        // flag is set when they choose, so a refresh before choosing
+        // offers the choice again.
+        setHowToChoiceMode(true);
+        dlg.showModal();
+        return;
+      }
       dlg.showModal();
       localStorage.setItem(KEY, "1");
     }
@@ -3022,7 +3059,12 @@ setTimeout(() => {
 document.addEventListener("DOMContentLoaded", () => {
   const howTo = document.getElementById("howToDialog");
   if (howTo) {
+    // First-visit choice can't be dismissed with Esc.
+    howTo.addEventListener("cancel", (e) => {
+      if (game && game.howToChoice) e.preventDefault();
+    });
     howTo.addEventListener("close", () => {
+      if (game && game.howToChoice) setHowToChoiceMode(false);
       if (game && game._pendingReveal) {
         const { cols, rows, rowMajor } = game._pendingReveal;
         game._pendingReveal = null;

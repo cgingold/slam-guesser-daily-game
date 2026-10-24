@@ -41,18 +41,52 @@ function updateThemeToggleUI(theme) {
   btn.title = label;
 }
 
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  updateThemeToggleUI(theme);
+}
+
+function getSavedTheme() {
+  try {
+    const v = localStorage.getItem(THEME_KEY);
+    return v === "dark" || v === "light" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+const darkSchemeQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
+
+// Same rule as the <head> script: saved choice, else OS preference.
+function getPreferredTheme() {
+  return getSavedTheme() || (darkSchemeQuery?.matches ? "dark" : "light");
+}
+
 function toggleTheme() {
   const next = getCurrentTheme() === "dark" ? "light" : "dark";
-  document.documentElement.setAttribute("data-theme", next);
+  applyTheme(next);
   try {
     localStorage.setItem(THEME_KEY, next);
   } catch {
     /* ignore quota/privacy-mode errors — theme just won't persist */
   }
-  updateThemeToggleUI(next);
 }
 
 updateThemeToggleUI(getCurrentTheme());
+
+// Keep an open page in step with what a refresh would show, so reloading
+// never flips the theme: the OS switching appearance while the page is
+// open (e.g. automatic dark mode at sunset, when no choice is saved), the
+// toggle being used in another tab, or a back/forward-cache restore.
+darkSchemeQuery?.addEventListener?.("change", () => {
+  if (!getSavedTheme()) applyTheme(getPreferredTheme());
+});
+window.addEventListener("storage", (e) => {
+  if (e.key === THEME_KEY || e.key === null) applyTheme(getPreferredTheme());
+});
+window.addEventListener("pageshow", (e) => {
+  if (e.persisted) applyTheme(getPreferredTheme());
+});
 
 /* ---- Data freshness gating ----------------------------
    All four 2026 slams are shown. To hide a slam that's still being
@@ -3085,10 +3119,27 @@ function paintRoundButton() {
   halo.classList.add("is-painted");
 }
 
-function openDifficultyDialog() {
-  const dlg = document.getElementById("difficultyDialog");
+// Round + stats modal — the header round button and stats button both
+// open it. Paints both sections before showing, and always starts at the top.
+function openRoundStatsDialog() {
+  const dlg = document.getElementById("roundStatsDialog");
   if (!dlg || typeof dlg.showModal !== "function") return;
 
+  paintWeekChart();
+  paintCareerStats();
+  dlg.showModal();
+  dlg.scrollTop = 0;
+}
+
+// Outcome marks for the day-pill corner badges — SVG rather than ✓/✕
+// glyphs so they stay crisp at badge size.
+const BADGE_ICON_WON =
+  '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 5l2 2 4-4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const BADGE_ICON_MISSED =
+  '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3 3l4 4M7 3l-4 4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>';
+
+// Weekly results section: the seven display-only day pills.
+function paintWeekChart() {
   const todayIdx = todayDayIndex();
   const todayIso = game.date || todayLocal();
   const weekResults = getWeekResults(todayIso);
@@ -3122,7 +3173,7 @@ function openDifficultyDialog() {
     const fillEl = el.querySelector(".diff-fill");
     if (dayIdx === 6 && haloEl && fillEl) {
       if (champion) {
-        haloEl.style.background = "#a5e85a";
+        haloEl.style.setProperty("--halo", "#a5e85a");
         fillEl.style.background = "#16a34a";
         fillEl.style.color = "#ffffff";
         fillEl.textContent = "W";
@@ -3135,7 +3186,7 @@ function openDifficultyDialog() {
         // no corner badge on top of it.
         return;
       } else {
-        haloEl.style.background = "#b8512a";
+        haloEl.style.setProperty("--halo", "#b8512a");
         fillEl.style.background = "#c084fc";
         fillEl.style.color = "#2e1065";
         fillEl.textContent = "F";
@@ -3152,10 +3203,12 @@ function openDifficultyDialog() {
       // blank "today" state.
       if (isDayWon(result)) {
         badge.classList.add("is-won");
-        badge.textContent = "✓";
+        badge.innerHTML = BADGE_ICON_WON;
+        badge.setAttribute("aria-label", "Won");
       } else {
         badge.classList.add("is-missed");
-        badge.textContent = "✕";
+        badge.innerHTML = BADGE_ICON_MISSED;
+        badge.setAttribute("aria-label", "Missed");
       }
       el.appendChild(badge);
       appendRevealPct(result);
@@ -3174,14 +3227,10 @@ function openDifficultyDialog() {
       el.classList.add("is-future");
     }
   });
-
-  dlg.showModal();
 }
 
-function openStatsDialog() {
-  const dlg = document.getElementById("statsDialog");
-  if (!dlg || typeof dlg.showModal !== "function") return;
-
+// Career stats section.
+function paintCareerStats() {
   const s = getCareerStats(game.date || todayLocal());
   const set = (id, text) => { document.getElementById(id).textContent = text; };
 
@@ -3196,8 +3245,6 @@ function openStatsDialog() {
   const c = s.championships;
   set("statChampionships", c === 0 ? "–" : c <= 4 ? "🏆".repeat(c) : `${c}x 🏆`);
   document.getElementById("statChampionships").classList.toggle("stats-trophies", c >= 1 && c <= 4);
-
-  dlg.showModal();
 }
 
 load().then(() => {
@@ -3256,16 +3303,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Round-of-day button → open the difficulty chart modal
-  const roundBtn = document.getElementById("roundBtn");
-  if (roundBtn) {
-    roundBtn.addEventListener("click", openDifficultyDialog);
-  }
-
-  const statsBtn = document.getElementById("statsBtn");
-  if (statsBtn) {
-    statsBtn.addEventListener("click", openStatsDialog);
-  }
+  // Round-of-day button and stats button → the same round + stats modal
+  ["roundBtn", "statsBtn"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("click", openRoundStatsDialog);
+  });
 
   // Tiebreak modal — the round is undecided until a pick or the timeout,
   // so ESC must not dismiss it for free.

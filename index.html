@@ -46,7 +46,7 @@
 <!-- ?v= busts GitHub Pages' 10-minute cache so a deploy can't pair new
      markup with stale JS/CSS. Bump it on every deploy; game.js reads it
      from its own script tag and reuses it for the JSON data files. -->
-<link rel="stylesheet" href="./style.css?v=20261024-3">
+<link rel="stylesheet" href="./style.css?v=20261024-9">
 </head>
 
 <body>
@@ -101,7 +101,7 @@
         </span>
       </button>
 
-      <!-- Career stats — opens statsDialog (openStatsDialog() in game.js). -->
+      <!-- Career stats — opens the same round + stats modal as the round button. -->
       <button class="icon-btn"
               id="statsBtn"
               aria-label="Your stats"
@@ -278,83 +278,71 @@
   </div>
 </dialog>
 
-<!-- Difficulty chart modal — opens when the round button in the header
-     is clicked. Shows seven pills (R1→F) with day labels, today's pill
-     highlighted, and a gradient bar reinforcing easier → harder. -->
-<dialog id="difficultyDialog" class="howto-dialog difficulty-dialog">
+<!-- Round + stats modal — opened by both the round button and the stats
+     button in the header (openRoundStatsDialog() in game.js). One stacked
+     view on a single surface: this week's results on top (seven
+     display-only pills R1→F, today highlighted), career stats underneath.
+     Follows the site's light/dark theme. -->
+<dialog id="roundStatsDialog" class="howto-dialog difficulty-dialog round-stats-dialog">
   <div class="howto-inner">
     <button class="howto-close"
             aria-label="Close"
-            onclick="document.getElementById('difficultyDialog').close()">×</button>
+            onclick="document.getElementById('roundStatsDialog').close()">×</button>
 
-    <!-- The 7-pill chart, identical structure to the static svg/png we built -->
+    <!-- The 7-pill chart. --halo is each day's difficulty color, drawn as a
+         soft tint behind the pill (see .diff-halo::before). -->
     <div class="diff-chart" id="diffChart">
       <div class="diff-eyebrow">Your results this week</div>
       <div class="diff-pills">
         <div class="diff-pill" data-day="0">
           <div class="diff-day">MON</div>
-          <span class="diff-halo" style="background:#a5e85a">
+          <span class="diff-halo" style="--halo:#a5e85a">
             <span class="diff-fill" style="background:#3b82f6;color:#ffffff">R1</span>
           </span>
         </div>
         <div class="diff-pill" data-day="1">
           <div class="diff-day">TUE</div>
-          <span class="diff-halo" style="background:#ccea4f">
+          <span class="diff-halo" style="--halo:#ccea4f">
             <span class="diff-fill" style="background:#3b82f6;color:#ffffff">R2</span>
           </span>
         </div>
         <div class="diff-pill" data-day="2">
           <div class="diff-day">WED</div>
-          <span class="diff-halo" style="background:#fde047">
+          <span class="diff-halo" style="--halo:#fde047">
             <span class="diff-fill" style="background:#3b82f6;color:#ffffff">R3</span>
           </span>
         </div>
         <div class="diff-pill" data-day="3">
           <div class="diff-day">THU</div>
-          <span class="diff-halo" style="background:#fdcd5c">
+          <span class="diff-halo" style="--halo:#fdcd5c">
             <span class="diff-fill" style="background:#3b82f6;color:#ffffff">R4</span>
           </span>
         </div>
         <div class="diff-pill" data-day="4">
           <div class="diff-day">FRI</div>
-          <span class="diff-halo" style="background:#fdb168">
+          <span class="diff-halo" style="--halo:#fdb168">
             <span class="diff-fill" style="background:#fdba74;color:#7c2d12">QF</span>
           </span>
         </div>
         <div class="diff-pill" data-day="5">
           <div class="diff-day">SAT</div>
-          <span class="diff-halo" style="background:#dc7a3f">
+          <span class="diff-halo" style="--halo:#dc7a3f">
             <span class="diff-fill" style="background:#fde047;color:#713f12">SF</span>
           </span>
         </div>
         <div class="diff-pill" data-day="6">
           <div class="diff-day">SUN</div>
-          <span class="diff-halo" style="background:#b8512a">
+          <span class="diff-halo" style="--halo:#b8512a">
             <span class="diff-fill" style="background:#c084fc;color:#2e1065">F</span>
           </span>
         </div>
       </div>
-      <div class="diff-axis">
-        <div class="diff-axis-bar"></div>
-        <div class="diff-axis-labels">
-          <span>easier</span>
-          <span>harder</span>
-        </div>
-      </div>
     </div>
-  </div>
-</dialog>
 
-<!-- Career stats modal — opened from the header stats button. Numbers are
-     filled in by openStatsDialog() from this device's day-by-day history. -->
-<dialog id="statsDialog" class="howto-dialog stats-dialog">
-  <div class="howto-inner">
-    <button class="howto-close"
-            aria-label="Close"
-            onclick="document.getElementById('statsDialog').close()">×</button>
-    <h2 class="stats-title">Your Stats</h2>
-
-    <!-- Every row ends in a thin track; the win % row fills it. -->
+    <!-- Career stats, below a divider. Filled in from this device's
+         day-by-day history. Win % and the current streak each end in a
+         thin track that fills; championships shows trophies instead. -->
+    <div class="stats-section">
     <div class="stats-row">
       <span class="stats-label">Career Win %</span>
       <span class="stats-value"><span id="statWinPct">–</span> <span class="stats-count" id="statWinCount">(0/0)</span></span>
@@ -373,6 +361,7 @@
     </div>
 
     <p class="stats-fineprint">Saved on this device only. Clearing your browser data resets your stats.</p>
+    </div>
   </div>
 </dialog>
 
@@ -552,7 +541,7 @@
 
 </div><!-- /.app -->
 
-<script src="./game.js?v=20261024-3"></script>
+<script src="./game.js?v=20261024-9"></script>
 
 
 </body>

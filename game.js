@@ -1,5 +1,12 @@
 const DAILY_KEY = "slamGuesserSimple.daily.v1";
 
+// Deploy version from this script's own ?v= (set in index.html), reused to
+// cache-bust the JSON data files so they always match this game.js.
+const ASSET_VERSION = (() => {
+  try { return new URL(document.currentScript.src).searchParams.get("v") || ""; } catch { return ""; }
+})();
+const versioned = (path) => (ASSET_VERSION ? `${path}?v=${ASSET_VERSION}` : path);
+
 /* ---- Theme (light/dark) -------------------------------
    The actual data-theme attribute is set as early as possible by an
    inline script in index.html's <head> (localStorage choice, else OS
@@ -603,7 +610,7 @@ function getScheduleEntry(dateIso) {
 
 async function loadSchedule() {
   try {
-    const res = await fetch("./schedule.json");
+    const res = await fetch(versioned("./schedule.json"));
     if (!res.ok) return; // file not deployed yet — silent
     const data = await res.json();
     schedule = (data && typeof data === "object" && !Array.isArray(data)) ? data : {};
@@ -646,11 +653,11 @@ function getRequestedDate() {
 /* LOAD */
 
 async function load() {
-  const res = await fetch("./players.json");
+  const res = await fetch(versioned("./players.json"));
 
   game.players = await res.json();
 
-  const res2 = await fetch("./guess_pool.json");
+  const res2 = await fetch(versioned("./guess_pool.json"));
 
   game.guessPool = await res2.json();
 
@@ -1841,18 +1848,8 @@ function loadImage(src) {
   });
 }
 
-async function buildStoryImage() {
-  const p = game.current;
-  if (!p) return null;
-
-  const W = 1080, H = 1920;
-  const canvas = document.createElement("canvas");
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext("2d");
-
-  ctx.fillStyle = "#1d3e35";
-  ctx.fillRect(0, 0, W, H);
-
+// Drawing helpers shared by both share images.
+function canvasKit(ctx) {
   // Renders an emoji to a tiny offscreen canvas and scans the alpha channel
   // to find the true pixel bounding box. Returns the visual center as an
   // offset from the draw origin. This bypasses measureText entirely, which
@@ -1909,54 +1906,118 @@ async function buildStoryImage() {
     ctx.closePath();
   }
 
-  // An early win adds a "with N% of their career revealed" line under the
-  // result; logo + result shift up to make room so the grid stays put.
-  const isTiebreak = game.lastOutcome === "tiebreak";
-  const won = game.lastOutcome === "win" || isTiebreak;
-  const revealPct = won ? partialRevealPct(game.revealPct) : null;
-  const lift = revealPct !== null ? 40 : 0;
+  return { drawEmojiCentered, roundRect };
+}
 
-  // 1. LOGO — draw og_image.png preserving its natural aspect ratio
+// Logo for both share images: og_image.png drawn large, with its tiny
+// baked-in tagline (source px x497-883, y371-401) painted over in the
+// background green and redrawn at a readable size in the same spot. If the
+// logo artwork changes, those coordinates need updating.
+async function drawShareLogo(ctx, W, centerY) {
   try {
     const logo = await loadImage("./og_image.png");
-    const logoW = 720;
-    const logoH = logoW * (logo.height / logo.width);
-    ctx.drawImage(logo, (W - logoW) / 2, 160 - lift, logoW, logoH);
+    const LOGO_W = 860, LOGO_H = LOGO_W * (logo.height / logo.width);
+    const LX = (W - LOGO_W) / 2, LY = centerY - LOGO_H / 2, LS = LOGO_W / logo.width;
+    ctx.drawImage(logo, LX, LY, LOGO_W, LOGO_H);
+    ctx.fillStyle = "#1d3e35";
+    ctx.fillRect(LX + 490 * LS, LY + 364 * LS, 410 * LS, 46 * LS);
+    ctx.textAlign = "left";
+    ctx.fillStyle = "rgb(198, 207, 204)";
+    ctx.font = "italic 32px Georgia, serif";
+    ctx.fillText("A game for tennis fans.", LX + 500 * LS, LY + 400 * LS);
   } catch {
     ctx.textAlign = "center";
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 54px Georgia, serif";
-    ctx.fillText("SLAM GRID", W / 2, 360);
-    ctx.fillStyle = "#9ab8b0";
-    ctx.font = "italic 22px Georgia, serif";
-    ctx.fillText("A game for tennis fans.", W / 2, 405);
+    ctx.fillText("SLAM GRID", W / 2, centerY + 8);
+    ctx.fillStyle = "rgb(198, 207, 204)";
+    ctx.font = "italic 32px Georgia, serif";
+    ctx.fillText("A game for tennis fans.", W / 2, centerY + 58);
   }
+  ctx.textAlign = "center";
+}
+
+// Logo + date block shared by both share images (same size and place).
+const SHARE_LOGO_CENTER_Y = 292;
+const SHARE_DATE_Y = 492;
+function drawShareDate(ctx, W) {
+  const [fy, fm, fd] = (game.date || todayLocal()).split("-").map(Number);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#9ab8b0";
+  ctx.font = "36px Georgia, serif";
+  ctx.fillText(new Date(fy, fm - 1, fd).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }), W / 2, SHARE_DATE_Y);
+}
+
+function drawShareCta(ctx, W, y) {
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "36px Georgia, serif";
+  ctx.fillText("Play every day at", W / 2, y);
+  ctx.fillStyle = "#a5e85a";
+  ctx.font = "bold 60px Georgia, serif";
+  ctx.fillText(SHARE_URL, W / 2, y + 78);
+}
+
+// Headline shared by both share images.
+function shareResultLine() {
+  const isTiebreak = game.lastOutcome === "tiebreak";
+  const won = game.lastOutcome === "win" || isTiebreak;
+  const guessNum = game.wrong + 1;
+  if (won && isChampionThisWeek(game.date || todayLocal())) return { text: "I am a Slam Grid Champion!", color: "#a5e85a" };
+  if (isTiebreak) return { text: "I won in a tiebreak!", color: "#a5e85a" };
+  if (won) return { text: guessNum === 1 ? "I got it in 1 guess" : `I got it in ${guessNum} guesses`, color: "#a5e85a" };
+  return { text: "Missed it!", color: "#fdba74" };
+}
+
+// One-line summary of the week for the weekly-results image.
+const NEXT_ROUND_NAME = ["Round 2", "Round 3", "Round 4", "the Quarterfinals", "the Semifinals", "the Final"];
+function weekStatusLine(weekResults, todayIdx) {
+  const upToToday = weekResults.slice(0, todayIdx + 1);
+  const played = upToToday.filter(Boolean).length;
+  const wins = upToToday.filter(isDayWon).length;
+  const skipped = weekResults.slice(0, todayIdx).filter((r) => !r).length;
+
+  if (todayIdx === 6 && wins === 7) return "🏆 7 for 7 — Champion";
+  if (todayIdx === 6 && weekResults[6]) {
+    if (isDayWon(weekResults[6])) return `${wins} for ${played} — won the Final`;
+    if (wins === 6) return "6 for 7 — fell in the Final";
+  }
+  if (!skipped && played && wins === played) return `${wins} for ${played} — through to ${NEXT_ROUND_NAME[todayIdx]}`;
+  if (skipped) return `${wins} for ${played} played this week`;
+  let streak = 0;
+  for (let i = todayIdx; i >= 0 && isDayWon(weekResults[i]); i--) streak++;
+  if (streak >= 3) return `${streak} straight — ${wins} for ${played} this week`;
+  return `${wins} for ${played} this week`;
+}
+
+async function buildStoryImage() {
+  const p = game.current;
+  if (!p) return null;
+
+  const W = 1080, H = 1920;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#1d3e35";
+  ctx.fillRect(0, 0, W, H);
+
+  const { drawEmojiCentered, roundRect } = canvasKit(ctx);
+
+  const isTiebreak = game.lastOutcome === "tiebreak";
+  const won = game.lastOutcome === "win" || isTiebreak;
+
+  // 1. LOGO + DATE
+  await drawShareLogo(ctx, W, SHARE_LOGO_CENTER_Y);
+  drawShareDate(ctx, W);
 
   // 2. RESULT LINE (fixed y)
-  const guessNum = won ? game.wrong + 1 : null;
-  const todayForChampion = game.date || todayLocal();
-  let resultLine, resultColor;
-  if (won && isChampionThisWeek(todayForChampion)) {
-    resultLine = "I am a Slam Grid Champion!";  resultColor = "#a5e85a";
-  } else if (isTiebreak) {
-    resultLine = "I won in a tiebreak!";        resultColor = "#a5e85a";
-  } else if (won) {
-    resultLine = guessNum === 1 ? "I got it in 1 guess" : `I got it in ${guessNum} guesses`;
-    resultColor = "#a5e85a";
-  } else {
-    resultLine = "Missed it!";       resultColor = "#fdba74";
-  }
+  const { text: resultLine, color: resultColor } = shareResultLine();
 
   ctx.textAlign = "center";
   ctx.fillStyle = resultColor;
   ctx.font = "bold 62px Georgia, serif";
-  ctx.fillText(resultLine, W / 2, 565 - lift);
-
-  if (revealPct !== null) {
-    ctx.fillStyle = "#a5e85a";
-    ctx.font = "italic 36px Georgia, serif";
-    ctx.fillText(`with only ${revealPct}% of their career revealed`, W / 2, 582);
-  }
+  ctx.fillText(resultLine, W / 2, 572);
 
   // 3. PROMPT (fixed y)
   ctx.fillStyle = "#ffffff";
@@ -2032,89 +2093,138 @@ async function buildStoryImage() {
 
   const gridBottom = cardY + cardH;
 
-  // 5. WEEK STRIP — all positions flow from gridBottom
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#9ab8b0";
-  ctx.font = "30px Georgia, serif";
-  ctx.fillText("My results this week", W / 2, gridBottom + 56);
-
-  const stripTop = gridBottom + 78;
-  const STRIP_X = 58;
-  const STRIP_STRIDE = 140;
-  const STRIP_CELL_W = 132;
-  const STRIP_CELL_H = 80;
-
-  const weekResults = getWeekResults(game.date || todayLocal());
-  const todayIdx = dayOfWeekIndex(game.date || todayLocal());
-
-  weekResults.forEach((result, i) => {
-    const sx = STRIP_X + i * STRIP_STRIDE;
-    const cellCx = sx + STRIP_CELL_W / 2;
-
-    roundRect(sx, stripTop, STRIP_CELL_W, STRIP_CELL_H, 12);
-    ctx.fillStyle = i === todayIdx ? "rgba(165,232,90,0.12)" : "rgba(255,255,255,0.05)";
-    ctx.fill();
-    if (i === todayIdx) {
-      ctx.strokeStyle = "#a5e85a";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#9ab8b0";
-    ctx.font = "bold 24px Georgia, serif";
-    ctx.fillText(DAY_LABELS[i], cellCx, stripTop + 32);
-
-    if (result) {
-      const emojiMarker = isDayWon(result) ? "✅" : "❌";
-      ctx.font = "34px serif";
-      drawEmojiCentered(emojiMarker, cellCx, stripTop + 59, 34);
-    } else if (i === todayIdx) {
-      ctx.fillStyle = "#a5e85a";
-      ctx.font = "bold 28px Georgia, serif";
-      ctx.fillText("·", cellCx, stripTop + 66);
-    } else if (i < todayIdx) {
-      ctx.fillStyle = "#555";
-      ctx.font = "28px serif";
-      ctx.fillText("·", cellCx, stripTop + 66);
-    }
-  });
-
-  const stripBottom = stripTop + STRIP_CELL_H;
-
-  // 6. CTA
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "38px Georgia, serif";
-  ctx.fillText("Play today at", W / 2, stripBottom + 80);
-  ctx.fillStyle = "#a5e85a";
-  ctx.font = "bold 60px Georgia, serif";
-  ctx.fillText(SHARE_URL, W / 2, stripBottom + 162);
-
-  // 7. FOOTER — date only
-  const todayIso = game.date || todayLocal();
-  const [fy, fm, fd] = todayIso.split("-").map(Number);
-  const dateLabel = new Date(fy, fm - 1, fd).toLocaleDateString(undefined, {
-    month: "long", day: "numeric", year: "numeric"
-  });
-  ctx.fillStyle = "#9ab8b0";
-  ctx.font = "28px Georgia, serif";
-  ctx.fillText(dateLabel, W / 2, stripBottom + 232);
+  // 5. CTA — flows from gridBottom
+  drawShareCta(ctx, W, gridBottom + 110);
 
   return canvas;
 }
 
-async function shareImage() {
+/* Weekly-results share image — spoiler-free: the week is drawn as a row of
+   grid cells in the game's round colors (R1-R4 blue, QF orange, SF yellow,
+   F purple; a champion's Sunday turns into a green W), each marked won,
+   missed, or skipped. Nothing about today's player appears. */
+const WEEK_CELL_STYLE = [
+  { bg: "#3b82f6", fg: "#ffffff" }, { bg: "#3b82f6", fg: "#ffffff" },
+  { bg: "#3b82f6", fg: "#ffffff" }, { bg: "#3b82f6", fg: "#ffffff" },
+  { bg: "#fdba74", fg: "#7c2d12" }, { bg: "#fde047", fg: "#713f12" },
+  { bg: "#c084fc", fg: "#2e1065" },
+];
+const WEEKDAY_SHORT = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+
+async function buildWeekImage() {
+  const W = 1080, H = 1920;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  const { drawEmojiCentered, roundRect } = canvasKit(ctx);
+  const todayIso = game.date || todayLocal();
+
+  ctx.fillStyle = "#1d3e35";
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = "center";
+
+  // 1. LOGO + DATE
+  await drawShareLogo(ctx, W, SHARE_LOGO_CENTER_Y);
+  drawShareDate(ctx, W);
+
+  // 3. HEADLINE (+ reveal % on an early win), centered as a block between
+  //    the date (text bottom ~500) and the week card (top 690)
+  const won = game.lastOutcome === "win" || game.lastOutcome === "tiebreak";
+  const revealPct = won ? partialRevealPct(game.revealPct) : null;
+  const CAP = 46, PCT_GAP = 54;
+  const blockH = revealPct !== null ? CAP + PCT_GAP + 8 : CAP;
+  const headY = 500 + (190 - blockH) / 2 + CAP;
+  const { text: headline, color: headColor } = shareResultLine();
+  ctx.fillStyle = headColor;
+  ctx.font = "bold 64px Georgia, serif";
+  ctx.fillText(headline, W / 2, headY);
+  if (revealPct !== null) {
+    ctx.fillStyle = "#a5e85a";
+    ctx.font = "italic 36px Georgia, serif";
+    ctx.fillText(`with only ${revealPct}% of their career revealed`, W / 2, headY + PCT_GAP);
+  }
+
+  // 4. WEEK CARD
+  const weekResults = getWeekResults(todayIso);
+  const todayIdx = dayOfWeekIndex(todayIso);
+  const champion = isChampionThisWeek(todayIso);
+  const cardX = 54, cardY = 690, cardW = 972, cardH = 470;
+  roundRect(cardX, cardY, cardW, cardH, 24);
+  ctx.fillStyle = "#15302a";
+  ctx.fill();
+  ctx.strokeStyle = "#2a4a3a";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 36px Georgia, serif";
+  ctx.fillText("My Slam Grid week", W / 2, cardY + 68);
+
+  const N = 7, GAP = 14;
+  const cellW = Math.floor((cardW - 60 - GAP * (N - 1)) / N), cellH = 150;
+  const cellY = cardY + 140;
+  weekResults.forEach((result, i) => {
+    const x = cardX + 30 + i * (cellW + GAP);
+    const cx = x + cellW / 2;
+    const isToday = i === todayIdx;
+    const skipped = i < todayIdx && !result;
+    const future = i > todayIdx;
+    const champSunday = champion && i === 6;
+    const style = champSunday ? { bg: "#16a34a", fg: "#ffffff" } : WEEK_CELL_STYLE[i];
+
+    ctx.fillStyle = isToday ? "#ffffff" : "#9ab8b0";
+    ctx.font = "bold 26px Georgia, serif";
+    ctx.fillText(WEEKDAY_SHORT[i], cx, cellY - 22);
+
+    ctx.globalAlpha = future ? 0.28 : skipped ? 0.4 : 1;
+    roundRect(x, cellY, cellW, cellH, 16);
+    ctx.fillStyle = style.bg;
+    ctx.fill();
+    ctx.fillStyle = style.fg;
+    ctx.font = "bold 46px Georgia, serif";
+    ctx.fillText(champSunday ? "W" : DAY_LABELS[i], cx, cellY + cellH / 2 + 16);
+    ctx.globalAlpha = 1;
+
+    if (isToday) {
+      roundRect(x - 6, cellY - 6, cellW + 12, cellH + 12, 20);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+
+    const markY = cellY + cellH + 46;
+    if (result) {
+      ctx.font = "44px serif";
+      drawEmojiCentered(isDayWon(result) ? "✅" : "❌", cx, markY, 44);
+    } else if (skipped) {
+      ctx.fillStyle = "#6b8a80";
+      ctx.font = "bold 44px Georgia, serif";
+      ctx.fillText("–", cx, markY + 12);
+    }
+  });
+
+  ctx.fillStyle = champion ? "#a5e85a" : "#ffffff";
+  ctx.font = "bold 40px Georgia, serif";
+  ctx.fillText(weekStatusLine(weekResults, todayIdx), W / 2, cardY + cardH - 40);
+
+  // 5. CTA
+  drawShareCta(ctx, W, 1290);
+
+  return canvas;
+}
+
+// kind: "grid" (today's grid) or "week" (weekly results)
+async function shareImage(kind = "grid") {
   if (!game.current) return;
-  const canvas = await buildStoryImage();
-  if (!canvas) throw new Error("buildStoryImage returned null");
+  const canvas = await (kind === "week" ? buildWeekImage() : buildStoryImage());
+  if (!canvas) throw new Error("share image builder returned null");
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) { reject(new Error("toBlob produced no data")); return; }
 
       const todayIso = game.date || todayLocal();
-      const filename = `slam-grid-${todayIso}.png`;
+      const filename = kind === "week" ? `slam-grid-week-${todayIso}.png` : `slam-grid-${todayIso}.png`;
 
       function downloadBlob() {
         const url = URL.createObjectURL(blob);
@@ -2135,7 +2245,7 @@ async function shareImage() {
         navigator.share({
           files: [file],
           title: "Slam Grid",
-          text: "Can you name this player? Play at " + SHARE_URL,
+          text: kind === "week" ? "My Slam Grid week — play every day at " + SHARE_URL : "Can you name this player? Play at " + SHARE_URL,
         }).then(resolve).catch((err) => {
           if (err && err.name === "AbortError") { resolve(); return; }
           // Share failed (e.g. user-activation expired) — fall back to download
@@ -2204,10 +2314,11 @@ function sharePopoverText() {
   share();
 }
 
-function sharePopoverIG() {
+// kind: "grid" (today's grid) or "week" (weekly results)
+function sharePopoverImage(kind) {
   closeSharePopover();
   if (!game.current) { showMessage("Finish today's game first"); return; }
-  shareImage().catch((err) => {
+  shareImage(kind).catch((err) => {
     console.error("shareImage failed:", err);
     showMessage("Couldn't create image — try again");
   });

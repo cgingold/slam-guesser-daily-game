@@ -1,0 +1,8 @@
+# Local-only admin tools and source assets (not deployed)
+tools/
+logos/
+z_Old/
+
+# OS / editor
+.DS_Store
+.claude/

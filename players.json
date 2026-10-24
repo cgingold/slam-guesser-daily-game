@@ -2696,7 +2696,7 @@
   {
     "name": "Alexandra Panova",
     "gender": "Female",
-    "nationality": "Soviet Union",
+    "nationality": "Russia",
     "slams": {
       "AustralianOpen": {
         "2008": "A",
@@ -3724,7 +3724,7 @@
   {
     "name": "Alona Bondarenko",
     "gender": "Female",
-    "nationality": "Soviet Union",
+    "nationality": "Ukraine",
     "slams": {
       "AustralianOpen": {
         "1999": "A",
@@ -8961,7 +8961,8 @@
         "2022": "A",
         "2023": "1R",
         "2024": "2R",
-        "2025": "A"
+        "2025": "A",
+        "2026": "A"
       },
       "USOpen": {
         "2014": "2R",
@@ -8975,7 +8976,8 @@
         "2022": "2R",
         "2023": "1R",
         "2024": "1R",
-        "2025": "1R"
+        "2025": "1R",
+        "2026": "A"
       }
     },
     "autoScore": 129.7,
@@ -12766,7 +12768,8 @@
         "2022": "3R",
         "2023": "A",
         "2024": "Q1",
-        "2025": "Q2"
+        "2025": "Q2",
+        "2026": "1R"
       },
       "Wimbledon": {
         "2011": "A",
@@ -12783,7 +12786,8 @@
         "2022": "QF",
         "2023": "A",
         "2024": "1R",
-        "2025": "2R"
+        "2025": "2R",
+        "2026": "A"
       },
       "USOpen": {
         "2011": "A",
@@ -12800,10 +12804,11 @@
         "2022": "2R",
         "2023": "Q1",
         "2024": "Q1",
-        "2025": "Q2"
+        "2025": "Q2",
+        "2026": "Q3"
       }
     },
-    "autoScore": 124.3,
+    "autoScore": 124.9,
     "inPool": true,
     "autoDay": "thursday"
   },
@@ -18561,7 +18566,8 @@
         "2021": "1R",
         "2022": "1R",
         "2023": "1R",
-        "2024": "1R"
+        "2024": "1R",
+        "2025": "Q2"
       },
       "USOpen": {
         "2016": "A",
@@ -18572,10 +18578,11 @@
         "2021": "1R",
         "2022": "2R",
         "2023": "Q3",
-        "2024": "1R"
+        "2024": "1R",
+        "2025": "Q1"
       }
     },
-    "autoScore": 112.9,
+    "autoScore": 113.6,
     "inPool": true,
     "autoDay": "saturday"
   },
@@ -24039,7 +24046,7 @@
   {
     "name": "Jelena Dokic",
     "gender": "Female",
-    "nationality": "Yugoslavia",
+    "nationality": "Australia",
     "slams": {
       "AustralianOpen": {
         "1999": "3R",
@@ -24113,7 +24120,7 @@
   {
     "name": "Jelena Jankovic",
     "gender": "Female",
-    "nationality": "Serbia and Montenegro",
+    "nationality": "Serbia",
     "slams": {
       "AustralianOpen": {
         "2002": "A",
@@ -30365,7 +30372,7 @@
   {
     "name": "Kristina Kucova",
     "gender": "Female",
-    "nationality": "Czechoslovakia",
+    "nationality": "Slovakia",
     "slams": {
       "AustralianOpen": {
         "2008": "A",
@@ -34811,7 +34818,7 @@
   {
     "name": "Marat Safin",
     "gender": "Male",
-    "nationality": "Soviet Union",
+    "nationality": "Russia",
     "slams": {
       "AustralianOpen": {
         "1997": "A",
@@ -45041,7 +45048,8 @@
         "2022": "1R",
         "2023": "A",
         "2024": "A",
-        "2025": "2R"
+        "2025": "2R",
+        "2026": "1R"
       },
       "Wimbledon": {
         "2015": "A",
@@ -45054,7 +45062,8 @@
         "2022": "2R",
         "2023": "A",
         "2024": "A",
-        "2025": "2R"
+        "2025": "2R",
+        "2026": "A"
       },
       "USOpen": {
         "2015": "Q2",
@@ -45067,10 +45076,11 @@
         "2022": "A",
         "2023": "A",
         "2024": "1R",
-        "2025": "1R"
+        "2025": "1R",
+        "2026": "A"
       }
     },
-    "autoScore": 120.4,
+    "autoScore": 121,
     "inPool": true,
     "autoDay": "friday"
   },
@@ -55365,7 +55375,8 @@
         "2022": "A",
         "2023": "A",
         "2024": "Q2",
-        "2025": "Q1"
+        "2025": "Q1",
+        "2026": "A"
       },
       "Wimbledon": {
         "2014": "Q2",
@@ -55379,7 +55390,8 @@
         "2022": "A",
         "2023": "Q1",
         "2024": "Q2",
-        "2025": "Q2"
+        "2025": "Q2",
+        "2026": "A"
       },
       "USOpen": {
         "2014": "Q1",
@@ -55393,7 +55405,8 @@
         "2022": "A",
         "2023": "A",
         "2024": "Q1",
-        "2025": "Q1"
+        "2025": "Q1",
+        "2026": "A"
       }
     },
     "autoScore": 110.8,

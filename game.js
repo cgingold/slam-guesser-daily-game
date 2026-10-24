@@ -2652,25 +2652,53 @@ function revealStep() {
 
 function stampCell(cell) {
   cell.classList.remove("is-hidden");
-  cell.classList.add("is-stamping");
   addRevealSeen([cell.dataset.key]);
-  // Desktop only: auto-scroll to keep the next column in view.
+  keepCellInView(cell); // measured before the stamp's 1.55× scale-up kicks in
+  cell.classList.add("is-stamping");
+  setTimeout(() => cell.classList.remove("is-stamping"), 350);
+}
+
+// The player scrolling the grid or page themselves pauses auto-scroll for
+// a moment, so the reveal doesn't yank them back to the newest cell.
+let _lastUserScrollAt = 0;
+["wheel", "touchstart", "touchmove"].forEach((type) =>
+  window.addEventListener(type, () => { _lastUserScrollAt = Date.now(); }, { passive: true, capture: true }));
+
+// Keep the cell being stamped in view as the reveal moves on.
+//  - Sideways (desktop, column by column): keep the next column visible.
+//  - Downwards (both layouts): the visible area ends at the bottom of the
+//    grid's scroll box, the bottom of the screen, or the top of the sticky
+//    Pause / Show all pills when they float over the grid — whichever is
+//    highest. Scroll the grid box first; if it's at its end, scroll the page.
+function keepCellInView(cell) {
+  if (Date.now() - _lastUserScrollAt < 1500) return;
   const wrap = document.querySelector(".table-wrap");
+  if (!wrap) return;
+  const MARGIN = 12;
+  const cellRect = cell.getBoundingClientRect();
+  const wrapRect = wrap.getBoundingClientRect();
+
   const col = parseInt(cell.dataset.col, 10);
-  if (!revealState.rowMajor && wrap && col < revealState.numCols - 1) {
-    const wrapRect = wrap.getBoundingClientRect();
-    const cellRect = cell.getBoundingClientRect();
+  if (!revealState.rowMajor && col < revealState.numCols - 1) {
     const RIGHT_MARGIN = 40;
     if (cellRect.right > wrapRect.right - RIGHT_MARGIN) {
       const overflow = cellRect.right - (wrapRect.right - RIGHT_MARGIN);
-      const maxScroll = wrap.scrollWidth - wrap.clientWidth;
-      const target = Math.min(wrap.scrollLeft + overflow, maxScroll);
-      if (target > wrap.scrollLeft + 1) {
-        wrap.scrollTo({ left: target, behavior: "smooth" });
-      }
+      const target = Math.min(wrap.scrollLeft + overflow, wrap.scrollWidth - wrap.clientWidth);
+      if (target > wrap.scrollLeft + 1) wrap.scrollTo({ left: target, behavior: "smooth" });
     }
   }
-  setTimeout(() => cell.classList.remove("is-stamping"), 350);
+
+  const vv = window.visualViewport;
+  let limit = Math.min(wrapRect.bottom, vv ? vv.offsetTop + vv.height : window.innerHeight);
+  const pills = document.getElementById("revealControls");
+  if (pills && !pills.hidden) limit = Math.min(limit, pills.getBoundingClientRect().top);
+  let over = cellRect.bottom + MARGIN - limit;
+  if (over <= 1) return;
+  const wrapRoom = Math.max(0, wrap.scrollHeight - wrap.clientHeight - wrap.scrollTop);
+  const byWrap = Math.min(over, wrapRoom);
+  if (byWrap > 1) wrap.scrollBy({ top: byWrap, behavior: "smooth" });
+  over -= byWrap;
+  if (over > 1) window.scrollBy({ top: over, behavior: "smooth" });
 }
 
 function toggleRevealPause() {

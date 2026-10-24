@@ -839,6 +839,82 @@ dialog.difficulty-dialog {
 .confirm-primary:hover { border-color: var(--ink-soft); filter: brightness(0.97); }
 
 /* ===========================================================
+   STATS MODAL — career stats, part of the always-light
+   .howto-dialog family
+   =========================================================== */
+.stats-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+
+/* Label left, value right, thin track underneath — sports-site stat list. */
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  column-gap: 12px;
+  padding-top: 14px;
+}
+.stats-row[hidden] { display: none; }
+
+.stats-label {
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.stats-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* A row of 1–4 trophies (toggled by openStatsDialog), packed tight so four fit beside the label. */
+.stats-trophies {
+  letter-spacing: -1px;
+}
+
+/* Smallest phones (320px): four trophies + the label run ~16px over, so
+   tighten just enough to keep the label on one line. */
+@media (max-width: 360px) {
+  .stats-dialog .howto-inner { padding-left: 18px; padding-right: 18px; }
+  .stats-row { column-gap: 8px; }
+  .stats-trophies { letter-spacing: -4px; }
+}
+
+/* Last row has no track, so give it the same bottom space the tracks do. */
+.stats-row:not(:has(.stats-track)) {
+  padding-bottom: 4px;
+}
+
+.stats-count {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.stats-track {
+  grid-column: 1 / -1;
+  height: 4px;
+  margin-top: 12px;
+  background: #eef0ee;
+}
+
+.stats-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--ink);
+}
+
+.stats-fineprint {
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin: 16px 0 0;
+}
+
+/* ===========================================================
    RESULT MODAL — round-end celebration
    =========================================================== */
 .result-dialog {

@@ -46,7 +46,7 @@
 <!-- ?v= busts GitHub Pages' 10-minute cache so a deploy can't pair new
      markup with stale JS/CSS. Bump it on every deploy; game.js reads it
      from its own script tag and reuses it for the JSON data files. -->
-<link rel="stylesheet" href="./style.css?v=20261024-2">
+<link rel="stylesheet" href="./style.css?v=20261024-3">
 </head>
 
 <body>
@@ -99,6 +99,16 @@
             <span class="round-btn-label" id="roundBtnLabel">R1</span>
           </span>
         </span>
+      </button>
+
+      <!-- Career stats — opens statsDialog (openStatsDialog() in game.js). -->
+      <button class="icon-btn"
+              id="statsBtn"
+              aria-label="Your stats"
+              title="Your stats">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 20V10M12 20V4M6 20v-6"/>
+        </svg>
       </button>
 
       <!-- Theme toggle — icon + aria-label swap based on the CURRENT
@@ -335,6 +345,37 @@
   </div>
 </dialog>
 
+<!-- Career stats modal — opened from the header stats button. Numbers are
+     filled in by openStatsDialog() from this device's day-by-day history. -->
+<dialog id="statsDialog" class="howto-dialog stats-dialog">
+  <div class="howto-inner">
+    <button class="howto-close"
+            aria-label="Close"
+            onclick="document.getElementById('statsDialog').close()">×</button>
+    <h2 class="stats-title">Your Stats</h2>
+
+    <!-- Every row ends in a thin track; the win % row fills it. -->
+    <div class="stats-row">
+      <span class="stats-label">Career Win %</span>
+      <span class="stats-value"><span id="statWinPct">–</span> <span class="stats-count" id="statWinCount">(0/0)</span></span>
+      <span class="stats-track"><span class="stats-fill" id="statWinBar"></span></span>
+    </div>
+    <!-- Current streak, its bar filled relative to the best (longest) streak. -->
+    <div class="stats-row">
+      <span class="stats-label">Current Streak</span>
+      <span class="stats-value"><span id="statCurrentStreak">0</span> <span class="stats-count">(best <span id="statLongest">0</span>)</span></span>
+      <span class="stats-track"><span class="stats-fill" id="statStreakBar"></span></span>
+    </div>
+    <!-- Trophies instead of a number: up to four, then "5x 🏆". -->
+    <div class="stats-row">
+      <span class="stats-label">Slam Grid Championships</span>
+      <span class="stats-value" id="statChampionships">–</span>
+    </div>
+
+    <p class="stats-fineprint">Saved on this device only. Clearing your browser data resets your stats.</p>
+  </div>
+</dialog>
+
 <div class="app">
 
 <!-- Screen-reader-only status announcements for guess/round outcomes.
@@ -511,7 +552,7 @@
 
 </div><!-- /.app -->
 
-<script src="./game.js?v=20261024-2"></script>
+<script src="./game.js?v=20261024-3"></script>
 
 
 </body>

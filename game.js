@@ -361,6 +361,63 @@ function isChampionThisWeek(today) {
   return getWeekResults(today).every(isDayWon);
 }
 
+/* ---- Career stats (stats dialog) -----------------------
+   Built from every slamGrid.dayResult.* entry on this device. A day with
+   no entry wasn't played: it doesn't count as a loss, but it does end a
+   winning streak. */
+
+function getAllDayResults() {
+  const out = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith(DAY_RESULT_KEY_PREFIX)) continue;
+      const date = k.slice(DAY_RESULT_KEY_PREFIX.length);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+      const r = getDayResult(date);
+      if (r) out.push({ ...r, date });
+    }
+  } catch { /* storage unavailable — no history */ }
+  return out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
+
+function getCareerStats(todayIso) {
+  const results = getAllDayResults().filter((r) => r.date <= todayIso);
+  const byDate = new Map(results.map((r) => [r.date, r]));
+  const wins = results.filter(isDayWon).length;
+
+  // Longest run of back-to-back calendar days, each one won.
+  let longestStreak = 0;
+  let run = 0;
+  let prevDate = null;
+  for (const r of results) {
+    if (!isDayWon(r)) run = 0;
+    else run = prevDate && addDaysToIso(prevDate, 1) === r.date ? run + 1 : 1;
+    if (run > longestStreak) longestStreak = run;
+    prevDate = r.date;
+  }
+
+  // Current streak runs back from today — or from yesterday while today's
+  // grid is still unplayed, so it isn't broken before the player has had
+  // a chance at today.
+  let currentStreak = 0;
+  let d = byDate.has(todayIso) ? todayIso : addDaysToIso(todayIso, -1);
+  while (isDayWon(byDate.get(d))) {
+    currentStreak++;
+    d = addDaysToIso(d, -1);
+  }
+
+  // Championships: Mon–Sun weeks with all seven days won.
+  const winsByWeek = new Map();
+  results.filter(isDayWon).forEach((r) => {
+    const mon = getMondayOfWeek(r.date);
+    winsByWeek.set(mon, (winsByWeek.get(mon) || 0) + 1);
+  });
+  const championships = [...winsByWeek.values()].filter((n) => n === 7).length;
+
+  return { played: results.length, wins, currentStreak, longestStreak, championships };
+}
+
 /* ------------------------------------------------------- */
 
 /* Restore a saved daily — either finished (locked, share enabled) or
@@ -3121,6 +3178,28 @@ function openDifficultyDialog() {
   dlg.showModal();
 }
 
+function openStatsDialog() {
+  const dlg = document.getElementById("statsDialog");
+  if (!dlg || typeof dlg.showModal !== "function") return;
+
+  const s = getCareerStats(game.date || todayLocal());
+  const set = (id, text) => { document.getElementById(id).textContent = text; };
+
+  const pct = s.played ? Math.round((s.wins / s.played) * 100) : 0;
+  set("statWinPct", s.played ? `${pct}%` : "–");
+  set("statWinCount", `(${s.wins}/${s.played})`);
+  document.getElementById("statWinBar").style.width = `${pct}%`;
+  set("statCurrentStreak", String(s.currentStreak));
+  set("statLongest", String(s.longestStreak));
+  const streakPct = s.longestStreak ? (s.currentStreak / s.longestStreak) * 100 : 0;
+  document.getElementById("statStreakBar").style.width = `${streakPct}%`;
+  const c = s.championships;
+  set("statChampionships", c === 0 ? "–" : c <= 4 ? "🏆".repeat(c) : `${c}x 🏆`);
+  document.getElementById("statChampionships").classList.toggle("stats-trophies", c >= 1 && c <= 4);
+
+  dlg.showModal();
+}
+
 load().then(() => {
   maybeShowFirstTimeHowTo();
   startCountdown();
@@ -3181,6 +3260,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const roundBtn = document.getElementById("roundBtn");
   if (roundBtn) {
     roundBtn.addEventListener("click", openDifficultyDialog);
+  }
+
+  const statsBtn = document.getElementById("statsBtn");
+  if (statsBtn) {
+    statsBtn.addEventListener("click", openStatsDialog);
   }
 
   // Tiebreak modal — the round is undecided until a pick or the timeout,

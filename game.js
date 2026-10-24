@@ -132,6 +132,65 @@ function saveDayResult(result) {
   }
 }
 
+/* ---- Reveal progress (anti-replay) ---------------------
+   Which grid cells the player has already seen today, so a refresh or a
+   second tab resumes the reveal instead of replaying it from zero — and
+   the early-win reveal % can't be gamed by reloading and pausing early.
+   Cells are keyed by slam:year, not reveal order, because desktop and
+   mobile reveal in different orders.
+   Key:   slamGrid.revealSeen.YYYY-MM-DD
+   Value: { player, keys: ["AustralianOpen:2019", ...] }  (today only) */
+
+const REVEAL_SEEN_KEY_PREFIX = "slamGrid.revealSeen.";
+
+// Set of seen cell keys for today's player, or null if there's no record.
+function getRevealSeen() {
+  try {
+    const raw = localStorage.getItem(REVEAL_SEEN_KEY_PREFIX + game.date);
+    const rec = raw ? JSON.parse(raw) : null;
+    if (!rec || rec.player !== game.current?.name) return null;
+    return new Set(rec.keys);
+  } catch {
+    return null;
+  }
+}
+
+function addRevealSeen(keys) {
+  if (!game.date || !game.current || !keys.length) return;
+  try {
+    const seen = getRevealSeen() || new Set();
+    const before = seen.size;
+    keys.forEach((k) => seen.add(k));
+    if (seen.size === before) return;
+    localStorage.setItem(REVEAL_SEEN_KEY_PREFIX + game.date,
+      JSON.stringify({ player: game.current.name, keys: [...seen] }));
+    // Only today's record matters — drop older days'.
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k.startsWith(REVEAL_SEEN_KEY_PREFIX) && k !== REVEAL_SEEN_KEY_PREFIX + game.date) {
+        localStorage.removeItem(k);
+      }
+    }
+  } catch {
+    /* ignore quota errors */
+  }
+}
+
+function markAllCellsSeen() {
+  addRevealSeen([...document.querySelectorAll("#table .reveal-cell")].map((c) => c.dataset.key));
+}
+
+// Skip the reveal animation outright only once the day is finished. A
+// mid-round refresh resumes it instead (seen cells shown, the rest still to
+// come) — except rounds begun before seen-tracking existed, which have no
+// record and so keep the old "show the full grid" restore.
+function shouldSkipReveal() {
+  const saved = getDailyResult(game.date, game.mode);
+  if (!saved) return false;
+  if (!saved.inProgress) return true;
+  return getRevealSeen() === null;
+}
+
 function getMondayOfWeek(dateIso) {
   const [y, m, d] = dateIso.split("-").map(Number);
   const date = new Date(y, m - 1, d);
@@ -681,7 +740,7 @@ function next() {
     if (match) {
       game.current = match;
       game.previous = match.name;
-      game._skipReveal = !!getDailyResult(game.date, game.mode);
+      game._skipReveal = shouldSkipReveal();
       render();
       updateUI();
       maybeRestoreFinishedDaily();
@@ -733,9 +792,10 @@ function next() {
   game.current = p;
   game.previous = p.name;
 
-  // If this date has a saved result, we're about to restore — skip the
-  // career-reveal animation since the user has already seen the table.
-  game._skipReveal = !!getDailyResult(game.date, game.mode);
+  // A finished day is about to be restored — skip the career-reveal
+  // animation since the user has already seen the table. (Mid-round
+  // restores resume the reveal from what was seen; see shouldSkipReveal.)
+  game._skipReveal = shouldSkipReveal();
 
   render();
   updateUI();
@@ -2137,7 +2197,7 @@ function buildDesktopTable(p, years, slams) {
         DATA_FRESHNESS_HIDE_SLAMS.includes(slam) &&
         v !== "A" && v !== "NH" && v !== "";
       const displayV = gated ? "" : v;
-      html += `<td class="${cls(displayV)} reveal-cell" data-row="${rowIdx}" data-col="${colIdx}">${displayResult(displayV)}</td>`;
+      html += `<td class="${cls(displayV)} reveal-cell" data-row="${rowIdx}" data-col="${colIdx}" data-key="${slam}:${y}">${displayResult(displayV)}</td>`;
     }
     html += "</tr>";
   }
@@ -2161,7 +2221,7 @@ function buildMobileTable(p, years, slams) {
         DATA_FRESHNESS_HIDE_SLAMS.includes(slam) &&
         v !== "A" && v !== "NH" && v !== "";
       const displayV = gated ? "" : v;
-      html += `<td class="${cls(displayV)} reveal-cell" data-row="${rowIdx}" data-col="${colIdx}">${displayResult(displayV)}</td>`;
+      html += `<td class="${cls(displayV)} reveal-cell" data-row="${rowIdx}" data-col="${colIdx}" data-key="${slam}:${y}">${displayResult(displayV)}</td>`;
     });
     html += "</tr>";
   });
@@ -2206,11 +2266,17 @@ function render() {
 
   // Trigger the column-by-column reveal animation. Skipped on restores
   // (the user has already seen this player), only fires on fresh rounds.
-  if (!game._skipReveal) {
-    // Pre-mark cells as hidden immediately so the gray plate is in place
-    // even if the actual reveal is deferred (e.g. how-to modal is open).
+  if (game._skipReveal) {
+    // Full grid on screen (finished-day restore, layout-breakpoint
+    // re-render) — it's all been seen now.
+    markAllCellsSeen();
+  } else {
+    // Pre-mark not-yet-seen cells as hidden immediately so the gray plate
+    // is in place even if the actual reveal is deferred (e.g. how-to modal
+    // is open). Cells seen on an earlier visit today stay showing.
+    const seen = getRevealSeen() || new Set();
     const cells = document.querySelectorAll("#table .reveal-cell");
-    cells.forEach((c) => c.classList.add("is-hidden"));
+    cells.forEach((c) => c.classList.toggle("is-hidden", !seen.has(c.dataset.key)));
 
     const howTo = document.getElementById("howToDialog");
     const howToOpen = howTo && howTo.open;
@@ -2253,13 +2319,17 @@ function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
-// Share of the career grid visible right now, 1-100. Floored so it only
-// reads 100 when every cell is actually showing.
+// Share of the career grid seen so far today, 1-100: cells showing now
+// plus any seen earlier (a previous visit or another tab), so reloading
+// and pausing early can't lower it. Floored so it only reads 100 when
+// every cell has been seen.
 function currentRevealPct() {
-  const total = document.querySelectorAll("#table .reveal-cell").length;
-  const hidden = document.querySelectorAll("#table .reveal-cell.is-hidden").length;
-  if (!total || !hidden) return 100;
-  return Math.max(1, Math.floor(((total - hidden) / total) * 100));
+  const cells = [...document.querySelectorAll("#table .reveal-cell")];
+  if (!cells.length) return 100;
+  const seen = getRevealSeen() || new Set();
+  const shown = cells.filter((c) => !c.classList.contains("is-hidden") || seen.has(c.dataset.key)).length;
+  if (shown === cells.length) return 100;
+  return Math.max(1, Math.floor((shown / cells.length) * 100));
 }
 
 // The reveal % worth bragging about: only when the win came before the
@@ -2276,10 +2346,16 @@ function animateReveal(numCols, numRows, rowMajor = false) {
   // Reduced motion: no animation, nothing to pause — show the grid at once.
   if (prefersReducedMotion()) {
     cells.forEach((c) => c.classList.remove("is-hidden"));
+    markAllCellsSeen();
     return;
   }
 
-  cells.forEach((c) => c.classList.add("is-hidden"));
+  // Resume rather than replay: cells already seen today (earlier visit or
+  // another tab) show straight away; only the rest animate in.
+  const seen = getRevealSeen() || new Set();
+  const unseen = cells.filter((c) => !seen.has(c.dataset.key));
+  cells.forEach((c) => c.classList.toggle("is-hidden", !seen.has(c.dataset.key)));
+  if (!unseen.length) return; // fully seen — no animation, no controls
   void document.getElementById("table").offsetWidth;
 
   const orderOf = (cell) => {
@@ -2288,7 +2364,7 @@ function animateReveal(numCols, numRows, rowMajor = false) {
     return rowMajor ? row * numCols + col : col * numRows + row;
   };
 
-  revealState.queue = cells.sort((a, b) => orderOf(a) - orderOf(b));
+  revealState.queue = unseen.sort((a, b) => orderOf(a) - orderOf(b));
   revealState.active = true;
   revealState.paused = false;
   revealState.rowMajor = rowMajor;
@@ -2314,6 +2390,7 @@ function revealStep() {
 function stampCell(cell) {
   cell.classList.remove("is-hidden");
   cell.classList.add("is-stamping");
+  addRevealSeen([cell.dataset.key]);
   // Desktop only: auto-scroll to keep the next column in view.
   const wrap = document.querySelector(".table-wrap");
   const col = parseInt(cell.dataset.col, 10);
@@ -2360,6 +2437,7 @@ function skipReveal() {
   cells.forEach((c, i) => c.classList.add("is-skipping", stepClass(i)));
   void document.getElementById("table").offsetWidth; // commit the plate as the transition's start
   cells.forEach((c) => c.classList.remove("is-hidden"));
+  addRevealSeen(cells.map((c) => c.dataset.key));
   setTimeout(() => cells.forEach((c, i) => c.classList.remove("is-skipping", stepClass(i))), 1000);
   stopReveal();
 }

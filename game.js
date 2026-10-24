@@ -3109,6 +3109,7 @@ function paintRoundButton() {
     fill.style.color = "#ffffff";
     label.textContent = "W";
     halo.classList.add("is-painted");
+    document.getElementById("roundIndicator")?.setAttribute("aria-label", "Champion this week");
     return;
   }
   const r = ROUND_BY_DAY[todayDayIndex()];
@@ -3117,10 +3118,10 @@ function paintRoundButton() {
   fill.style.color = r.text;
   label.textContent = r.round;
   halo.classList.add("is-painted");
+  document.getElementById("roundIndicator")?.setAttribute("aria-label", `Today's round: ${r.round}`);
 }
 
-// Round + stats modal — the header round button and stats button both
-// open it. Paints both sections before showing, and always starts at the top.
+// Round + stats modal — opened by the header stats button. Paints both sections before showing, and always starts at the top.
 function openRoundStatsDialog() {
   const dlg = document.getElementById("roundStatsDialog");
   if (!dlg || typeof dlg.showModal !== "function") return;
@@ -3303,10 +3304,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Round-of-day button and stats button → the same round + stats modal
-  ["roundBtn", "statsBtn"].forEach((id) => {
-    document.getElementById(id)?.addEventListener("click", openRoundStatsDialog);
-  });
+  // Stats button → round + stats modal (the round indicator beside it is display-only)
+  document.getElementById("statsBtn")?.addEventListener("click", openRoundStatsDialog);
 
   // Tiebreak modal — the round is undecided until a pick or the timeout,
   // so ESC must not dismiss it for free.

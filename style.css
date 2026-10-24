@@ -238,22 +238,15 @@ body.is-ready .app { opacity: 1; }
 #themeToggleBtn .icon-sun { display: none; }
 
 /* =========================================================
-   ROUND-OF-DAY BUTTON — sits to the left of the info icon
+   ROUND-OF-DAY INDICATOR — display-only, left of the stats button
    ========================================================= */
 .round-btn {
-  background: transparent;
-  border: none;
-  padding: 0;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
-  transition: transform 0.12s;
 }
-.round-btn:hover { transform: scale(1.06); filter: none; }
-.round-btn:active { transform: scale(0.96); }
 
 .round-btn-halo {
   display: inline-flex;

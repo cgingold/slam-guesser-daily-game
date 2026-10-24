@@ -1191,6 +1191,23 @@ dialog.difficulty-dialog {
   white-space: nowrap;
 }
 
+/* Primary label + subtitle stacked; the row's align-items centers the
+   icon on the pair. */
+.share-popover-text {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fixed grey rather than a theme token: the popover stays white in both themes. */
+.share-popover-sub {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #6b716e;
+  white-space: nowrap;
+}
+
 /* ===========================================================
    APP CONTAINER
    =========================================================== */

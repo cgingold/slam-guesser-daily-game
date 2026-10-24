@@ -232,6 +232,18 @@ function shouldSkipReveal() {
    touches the daily lock, week strip, difficulty chart, or championship. */
 
 const INTRO_SEEN_KEY = "slamGrid.introSeen";
+// Set when the player picks "Practice round"; cleared only when the
+// practice truly ends. A refresh mid-practice restarts the practice
+// instead of dropping a brand-new player into today's grid.
+const DEMO_IN_PROGRESS_KEY = "slamGrid.demoInProgress";
+
+function isDemoInProgress() {
+  try {
+    return !localStorage.getItem(INTRO_SEEN_KEY) && !!localStorage.getItem(DEMO_IN_PROGRESS_KEY);
+  } catch {
+    return false;
+  }
+}
 const INTRO_PLAYER_NAME = "Rafael Nadal";
 
 // True only with no trace of a previous visit. The how-to flag counts as
@@ -278,6 +290,7 @@ function endIntro() {
   if (!game.isDemo) return;
   game.isDemo = false;
   game.introPlayer = null;
+  try { localStorage.removeItem(DEMO_IN_PROGRESS_KEY); } catch { /* ignore */ }
   markIntroSeen();
   document.getElementById("introBanner").hidden = true;
   document.body.classList.remove("is-practice");
@@ -302,6 +315,7 @@ function markHowToSeen() {
 // starts the reveal.
 function choosePracticeRound() {
   markHowToSeen();
+  try { localStorage.setItem(DEMO_IN_PROGRESS_KEY, "true"); } catch { /* ignore */ }
   document.getElementById("howToDialog").close();
 }
 
@@ -700,7 +714,8 @@ async function load() {
   game.mode = getMode();
   game.date = getRequestedDate();
 
-  if (!(isFirstTimePlayer() && startIntro())) next();
+  // Practice round: brand-new player, or a refresh mid-practice (restarts it).
+  if (!((isDemoInProgress() || isFirstTimePlayer()) && startIntro())) next();
 
   // Strip any query string so the URL stays clean Wordle-style. Note:
   // ?date= / ?play= params are NOT read by this build (today-only); this
@@ -2507,7 +2522,7 @@ function render() {
     // Pre-mark not-yet-seen cells as hidden immediately so the gray plate
     // is in place even if the actual reveal is deferred (e.g. how-to modal
     // is open). Cells seen on an earlier visit today stay showing.
-    const seen = getRevealSeen() || new Set();
+    const seen = revealedKeys();
     const cells = document.querySelectorAll("#table .reveal-cell");
     cells.forEach((c) => c.classList.toggle("is-hidden", !seen.has(c.dataset.key)));
 
@@ -2575,6 +2590,8 @@ function animateReveal(numCols, numRows, rowMajor = false) {
   stopReveal();
 
   const cells = [...document.querySelectorAll("#table .reveal-cell")];
+  const carry = game._revealCarry;
+  game._revealCarry = null;
 
   // Reduced motion: no animation, nothing to pause — show the grid at once.
   if (prefersReducedMotion()) {
@@ -2583,9 +2600,11 @@ function animateReveal(numCols, numRows, rowMajor = false) {
     return;
   }
 
-  // Resume rather than replay: cells already seen today (earlier visit or
-  // another tab) show straight away; only the rest animate in.
+  // Resume rather than replay: cells already seen (earlier visit, another
+  // tab, or before a layout switch) show straight away; only the rest
+  // animate in.
   const seen = getRevealSeen() || new Set();
+  if (carry) carry.keys.forEach((k) => seen.add(k));
   const unseen = cells.filter((c) => !seen.has(c.dataset.key));
   cells.forEach((c) => c.classList.toggle("is-hidden", !seen.has(c.dataset.key)));
   if (!unseen.length) return; // fully seen — no animation, no controls
@@ -2604,14 +2623,14 @@ function animateReveal(numCols, numRows, rowMajor = false) {
   revealState.numCols = numCols;
   setRevealControlsVisible(true);
 
-  // Paused before a refresh → come back paused, on "Resume".
-  if (isRevealPausedStored()) {
+  // Paused before a refresh or layout switch → come back paused, on "Resume".
+  if (carry ? carry.paused : isRevealPausedStored()) {
     revealState.paused = true;
-    revealState.remaining = 0;
+    revealState.remaining = carry ? carry.remaining : 0;
     updateRevealPauseButton();
     return;
   }
-  scheduleRevealStep(0);
+  scheduleRevealStep(carry ? carry.remaining : 0); // a layout switch finishes the interrupted beat
 }
 
 function scheduleRevealStep(delay) {
@@ -2738,12 +2757,40 @@ window.addEventListener("resize", () => {
   // Re-render when crossing the mobile/desktop breakpoint (debounced 200ms).
   clearTimeout(window.__layoutTimer);
   window.__layoutTimer = setTimeout(() => {
-    if (game.current && isMobileLayout() !== _lastLayoutIsMobile) {
-      game._skipReveal = true;
-      render();
-    }
+    if (game.current && isMobileLayout() !== _lastLayoutIsMobile) relayoutGrid();
   }, 200);
 });
+
+// Rebuild the grid for the other layout without the player being able to
+// tell: hidden cells stay hidden, shown cells stay shown, and a running
+// reveal carries on (a paused one stays paused). Cells are matched by
+// slam:year, since the two layouts reveal in different orders.
+function relayoutGrid() {
+  if (revealState.active) {
+    const shown = [...document.querySelectorAll("#table .reveal-cell")]
+      .filter((c) => !c.classList.contains("is-hidden"))
+      .map((c) => c.dataset.key);
+    game._revealCarry = {
+      keys: new Set(shown),
+      paused: revealState.paused,
+      remaining: revealState.paused ? revealState.remaining : Math.max(0, revealState.nextAt - Date.now()),
+    };
+    game._skipReveal = false;
+  } else if (game._pendingReveal) {
+    game._skipReveal = false; // reveal still waiting on the How-to dialog — keep the grid hidden
+  } else {
+    game._skipReveal = true; // reveal finished (or never animated) — full grid, as before
+  }
+  render(); // render() → stopReveal() clears the old timer before the table is replaced
+}
+
+// Cells the player has already seen: today's saved record plus anything
+// carried across a layout re-render (the practice round saves nothing).
+function revealedKeys() {
+  const keys = getRevealSeen() || new Set();
+  if (game._revealCarry) game._revealCarry.keys.forEach((k) => keys.add(k));
+  return keys;
+}
 
 /* UI */
 

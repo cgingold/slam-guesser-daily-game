@@ -1735,7 +1735,36 @@ function buildGuessPoolIndex() {
   guessPoolIndex = game.guessPool.map((name) => ({
     display: name,
     search: deaccent(name).toLowerCase(),
+    words: nameWords(name),
   }));
+}
+
+// Deaccented, lowercased name words, with a trailing Jr./Sr./II dropped
+// so the last word is the surname ("Alex Bogomolov Jr." → [..., "bogomolov"]).
+const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv"]);
+function nameWords(name) {
+  const words = deaccent(name).toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  while (words.length > 1 && NAME_SUFFIXES.has(words[words.length - 1])) words.pop();
+  return words;
+}
+
+// How well a pool entry matches the typed text: lower is better, -1 is no
+// match. Surname hits come first so "paul" finds Tommy Paul ahead of every
+// Paul-first-name and "Paulus". Two letters only match whole words ("li",
+// "ho"), so short surnames are findable without flooding the list.
+function suggestionTier(entry, q) {
+  if (q.includes(" ")) {
+    if (!entry.search.includes(q)) return -1;
+    return entry.search.startsWith(q) ? 0 : 1;
+  }
+  const words = entry.words;
+  const surname = words[words.length - 1] || "";
+  if (surname === q) return 0;                          // surname, exactly
+  if (words.includes(q)) return 1;                      // another whole word
+  if (q.length < 3) return -1;
+  if (surname.startsWith(q)) return 2;                  // surname starts with it
+  if (words.some((w) => w.startsWith(q))) return 3;     // a word starts with it
+  return entry.search.includes(q) ? 4 : -1;             // anywhere in the name
 }
 
 function updateSuggestions() {
@@ -1745,23 +1774,26 @@ function updateSuggestions() {
   game.selectedSuggestion = false;
 
   const rawInput = document.getElementById("guess").value;
-  const input = deaccent(rawInput).toLowerCase();
+  const input = deaccent(rawInput).toLowerCase().trim().replace(/\s+/g, " ");
 
   const box = document.getElementById("suggestions");
   const guessInput = document.getElementById("guess");
 
-  if (input.length < 3) {
+  if (input.length < 2) {
     box.style.display = "none";
     guessInput.setAttribute("aria-expanded", "false");
     guessInput.removeAttribute("aria-activedescendant");
     return;
   }
 
-  // Match against the deaccented index, return the original display name.
+  // Match against the deaccented index, best matches first (pool order —
+  // alphabetical — within a tier); return the original display names.
   const matches = guessPoolIndex
-    .filter((p) => p.search.includes(input))
+    .map((p) => ({ p, tier: suggestionTier(p, input) }))
+    .filter((m) => m.tier >= 0)
+    .sort((a, b) => a.tier - b.tier)
     .slice(0, 8)
-    .map((p) => p.display);
+    .map((m) => m.p.display);
 
   box.innerHTML = "";
   matches.forEach((m) => {

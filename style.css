@@ -890,9 +890,9 @@ dialog.round-stats-dialog { /* dialog. outranks .howto-dialog's white, which com
 
 .stats-fineprint {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
-  color: #8aab9e;
+  color: #4f7064; /* 5.2:1 on the light surface */
   margin: 20px 0 0;
 }
 [data-theme="dark"] .stats-fineprint { color: rgba(255, 255, 255, 0.45); }

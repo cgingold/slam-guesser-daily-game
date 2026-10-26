@@ -2654,7 +2654,8 @@ function revealBeatFor(totalCells) {
 
 const revealState = {
   active: false,  // reveal in progress
-  paused: false,  // currently paused
+  paused: false,  // currently paused (by the player)
+  held: false,    // on hold because the page is hidden (see holdRevealWhileHidden)
   beat: REVEAL_BEAT_MIN_MS, // ms between cells for the current grid
   queue: [],      // cells not yet revealed, in order
   timer: null,    // pending setTimeout id
@@ -2721,6 +2722,7 @@ function animateReveal(numCols, numRows, rowMajor = false) {
   revealState.beat = revealBeatFor(cells.length); // whole grid, so a resumed reveal keeps its pace
   revealState.active = true;
   revealState.paused = false;
+  revealState.held = false;
   revealState.rowMajor = rowMajor;
   revealState.numCols = numCols;
   setRevealControlsVisible(true);
@@ -2736,9 +2738,35 @@ function animateReveal(numCols, numRows, rowMajor = false) {
 }
 
 function scheduleRevealStep(delay) {
+  // Page not on screen: hold the beat until it is (holdRevealWhileHidden).
+  if (document.hidden) {
+    revealState.held = true;
+    revealState.remaining = delay;
+    return;
+  }
   revealState.nextAt = Date.now() + delay;
   revealState.timer = setTimeout(revealStep, delay);
 }
+
+// The reveal only runs while the page is on screen. Hidden — another app
+// or tab, phone locked, or the midnight auto-reload landing in a
+// background tab — it holds mid-beat and picks up on return, so no cell is
+// revealed (or saved as seen) while nobody is watching. Separate from the
+// player's Pause: nothing is stored and the button doesn't change.
+function holdRevealWhileHidden() {
+  if (!revealState.active || revealState.paused) return;
+  if (document.hidden) {
+    if (revealState.held || !revealState.timer) return;
+    clearTimeout(revealState.timer);
+    revealState.timer = null;
+    revealState.remaining = Math.max(0, revealState.nextAt - Date.now());
+    revealState.held = true;
+  } else if (revealState.held) {
+    revealState.held = false;
+    scheduleRevealStep(revealState.remaining);
+  }
+}
+document.addEventListener("visibilitychange", holdRevealWhileHidden);
 
 function revealStep() {
   revealState.timer = null;
@@ -2812,7 +2840,9 @@ function toggleRevealPause() {
   } else {
     clearTimeout(revealState.timer);
     revealState.timer = null;
-    revealState.remaining = Math.max(0, revealState.nextAt - Date.now());
+    // Held (page was hidden) → its remaining beat is already stored.
+    if (!revealState.held) revealState.remaining = Math.max(0, revealState.nextAt - Date.now());
+    revealState.held = false;
     revealState.paused = true;
   }
   storeRevealPaused(revealState.paused); // survives a refresh
@@ -2845,6 +2875,7 @@ function stopReveal() {
   revealState.queue = [];
   revealState.active = false;
   revealState.paused = false;
+  revealState.held = false;
   setRevealControlsVisible(false);
 }
 
@@ -2903,7 +2934,7 @@ function relayoutGrid() {
     game._revealCarry = {
       keys: new Set(shown),
       paused: revealState.paused,
-      remaining: revealState.paused ? revealState.remaining : Math.max(0, revealState.nextAt - Date.now()),
+      remaining: revealState.paused || revealState.held ? revealState.remaining : Math.max(0, revealState.nextAt - Date.now()),
     };
     game._skipReveal = false;
   } else if (game._pendingReveal) {
